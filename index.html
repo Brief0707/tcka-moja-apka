@@ -355,24 +355,13 @@
         let currentSection = "chat";
 
         // Lokálne dáta komunity (kým nezapojíš aj Firestore databázu)
-        let usersDB = [
-            { id: "1", nick: "Lubomír", email: "rohar@gmail.com", location: "Bratislavský", role: "ADMIN", verified: true, age: 28 },
-            { id: "2", nick: "Zuzana_UK", email: "zuzana@uk.sk", location: "UK & Írsko", role: "Člen", verified: true, age: 26 },
-            { id: "3", nick: "Majo_KE", email: "majo@kosice.sk", location: "Východné Slovensko", role: "Člen", verified: true, age: 31 }
-        ];
+        let usersDB = [];
 
         let messagesDB = {
-            "Hlavná sála": [
-                { nick: "Lubomír", text: "Vitajte v zabezpečenej slovenskej aplikácii T.cka!", time: "19:00", role: "ADMIN" },
-                { nick: "Zuzana_UK", text: "Zdravím všetkých z Londýna! 🇬🇧", time: "19:02", role: "Člen" }
-            ],
-            "Tabuľa 18+": [
-                { nick: "Majo_KE", text: "Diskusia pre dospelých členov.", time: "18:30", role: "Člen" }
-            ],
+            "Hlavná sála": [],
+            "Tabuľa 18+": [],
             "Pikošky a zábava": [],
-            "Slováci v UK & Írsku": [
-                { nick: "Zuzana_UK", text: "Hľadá sa niekto na nedeľnú slovenskú kávu v Londýne?", time: "17:15", role: "Člen" }
-            ],
+            "Slováci v UK & Írsku": [],
             "Slováci v Česku": [],
             "Slováci v DE & AT": [],
             "Bratislavský kraj": [],
@@ -382,13 +371,8 @@
         };
 
         let postsDB = {
-            spolujazda: [
-                { title: "Londýn -> Bratislava", desc: "Idem budúci piatok, voľné 3 miesta v aute.", author: "Zuzana_UK", contact: "RP" },
-                { title: "Praha -> Žilina", desc: "Jazda každý štvrtok večer.", author: "Majo_KE", contact: "RP" }
-            ],
-            bazar: [
-                { title: "Predám slovenskú cezmičku a bryndzu", desc: "Dovoz priamo zo Zvolena, osobný odber Bristol.", author: "Lubomír", contact: "RP" }
-            ]
+            spolujazda: [],
+            bazar: []
         };
 
         function showAuthAlert(msg, isError = true) {
@@ -420,9 +404,10 @@
                 }
 
                 const savedLoc = localStorage.getItem('tcka_loc_' + firebaseUser.uid) || "Bratislavský";
+                const nickName = isAdmin ? "Admin" : (firebaseUser.displayName || email.split('@')[0]);
                 currentUser = {
                     uid: firebaseUser.uid,
-                    nick: firebaseUser.displayName || email.split('@')[0],
+                    nick: nickName,
                     email: email,
                     location: savedLoc,
                     role: isAdmin ? "ADMIN" : "Člen",
