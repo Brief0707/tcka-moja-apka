@@ -323,6 +323,7 @@
     </div>
 
     <!-- FIREBASE SDK & SCRIPT LOGIKA -->
+        <!-- FIREBASE SDK & SCRIPT LOGIKA -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { 
@@ -334,6 +335,18 @@
             signOut,
             updateProfile
         } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import {
+            getFirestore,
+            collection,
+            addDoc,
+            onSnapshot,
+            query,
+            orderBy,
+            serverTimestamp,
+            doc,
+            setDoc,
+            deleteDoc
+        } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         // Tvoja reálna Firebase konfigurácia
         const firebaseConfig = {
@@ -348,35 +361,26 @@
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
+        const db = getFirestore(app);
 
         const ADMIN_EMAIL = "rohar@gmail.com";
         let currentUser = null;
         let currentRoom = "Hlavná sála";
         let currentSection = "chat";
 
-        // Lokálne dáta komunity (kým nezapojíš aj Firestore databázu)
         let usersDB = [];
-
-        let messagesDB = {
-            "Hlavná sála": [],
-            "Tabuľa 18+": [],
-            "Pikošky a zábava": [],
-            "Slováci v UK & Írsku": [],
-            "Slováci v Česku": [],
-            "Slováci v DE & AT": [],
-            "Bratislavský kraj": [],
-            "Západné Slovensko": [],
-            "Stredné Slovensko": [],
-            "Východné Slovensko": []
-        };
-
+        let messagesDB = {};
         let postsDB = {
             spolujazda: [],
             bazar: []
         };
 
+        let unsubscribeMessages = null;
+        let unsubscribeUsers = null;
+
         function showAuthAlert(msg, isError = true) {
             const box = document.getElementById('authMessage');
+            if (!box) return;
             box.innerText = msg;
             box.classList.remove('hidden', 'bg-red-100', 'text-red-700', 'bg-green-100', 'text-green-700');
             if (isError) {
@@ -387,16 +391,16 @@
         }
 
         function hideAuthAlert() {
-            document.getElementById('authMessage').classList.add('hidden');
+            const box = document.getElementById('authMessage');
+            if (box) box.classList.add('hidden');
         }
 
-        // Sledovanie prihláseného používateľa cez Firebase Auth
-        onAuthStateChanged(auth, (firebaseUser) => {
+        // Sledowanie prihláseného používateľa cez Firebase Auth
+        onAuthStateChanged(auth, async (firebaseUser) => {
             if (firebaseUser) {
                 const email = firebaseUser.email.toLowerCase();
                 const isAdmin = (email === ADMIN_EMAIL);
 
-                // Bežní používatelia musia mať overený e-mail; Adminovi (rohar@gmail.com) povolíme prístup aj hneď po vytvorení účtu
                 if (!firebaseUser.emailVerified && !isAdmin) {
                     signOut(auth);
                     showAuthAlert("Tvoj e-mail ešte nie je potvrdený. Skontroluj si schránku (aj Spam) a klikni na overovací odkaz.", true);
@@ -414,20 +418,26 @@
                     verified: firebaseUser.emailVerified
                 };
 
-                if (!usersDB.some(u => u.email === email)) {
-                    usersDB.push({
-                        id: firebaseUser.uid,
+                // Uloženie/aktualizácia užívateľa v reálnej Firestore databáze
+                try {
+                    await setDoc(doc(db, "users", firebaseUser.uid), {
+                        uid: firebaseUser.uid,
                         nick: currentUser.nick,
                         email: email,
                         location: savedLoc,
                         role: currentUser.role,
-                        verified: currentUser.verified
+                        verified: currentUser.verified,
+                        lastActive: serverTimestamp()
                     });
+                } catch (err) {
+                    console.error("Chyba pri zápise používateľa do Firestore:", err);
                 }
 
                 initAppSession();
             } else {
                 currentUser = null;
+                if (unsubscribeMessages) unsubscribeMessages();
+                if (unsubscribeUsers) unsubscribeUsers();
                 document.getElementById('mainApp').classList.add('hidden');
                 document.getElementById('authScreen').classList.remove('hidden');
             }
@@ -454,7 +464,6 @@
             }
         };
 
-        // Skutočné prihlásenie cez Firebase (overuje heslo!)
         window.handleLogin = async function(e) {
             e.preventDefault();
             hideAuthAlert();
@@ -481,7 +490,6 @@
             }
         };
 
-        // Skutočná registrácia + odoslanie overovacieho e-mailu
         window.handleRegister = async function(e) {
             e.preventDefault();
             hideAuthAlert();
@@ -534,21 +542,65 @@
                 document.getElementById('navAdminBtn').classList.add('hidden');
             }
 
-            renderChatMessages();
-            renderActiveUsers();
+            setupRealtimeListeners();
             renderStretko();
             renderCommunityPosts();
             renderAdminPanel();
         }
 
+        // Nastavenie reálneho času pre Firestore (Aktívni členovia a správy v miestnostiach)
+        function setupRealtimeListeners() {
+            // 1. Počúvanie aktívnych používateľov z Firestore
+            if (unsubscribeUsers) unsubscribeUsers();
+            unsubscribeUsers = onSnapshot(collection(db, "users"), (snapshot) => {
+                usersDB = [];
+                snapshot.forEach((docSnap) => {
+                    usersDB.push(docSnap.data());
+                });
+                renderActiveUsers();
+                renderStretko();
+                renderAdminPanel();
+            });
+
+            // 2. Načítanie správ pre aktuálnu miestnosť
+            loadRoomMessages();
+        }
+
+        function loadRoomMessages() {
+            if (unsubscribeMessages) unsubscribeMessages();
+            
+            const q = query(collection(db, "rooms", currentRoom, "messages"), orderBy("timestamp", "asc"));
+            unsubscribeMessages = onSnapshot(q, (snapshot) => {
+                const msgs = [];
+                snapshot.forEach((docSnap) => {
+                    msgs.push(docSnap.data());
+                });
+                messagesDB[currentRoom] = msgs;
+                renderChatMessages();
+            }, (error) => {
+                console.error("Chyba pri načítatí správ (skontroluj Firestore Indexy ak sú vyžadované):", error);
+                // Fallback bez triedenia ak index ešte neexistuje
+                const fallbackQ = collection(db, "rooms", currentRoom, "messages");
+                onSnapshot(fallbackQ, (snap) => {
+                    const fallbackMsgs = [];
+                    snap.forEach(d => fallbackMsgs.push(d.data()));
+                    messagesDB[currentRoom] = fallbackMsgs;
+                    renderChatMessages();
+                });
+            });
+        }
+
         window.handleLogout = async function() {
+            if (currentUser) {
+                try {
+                    await deleteDoc(doc(db, "users", currentUser.uid));
+                } catch(e) {}
+            }
             await signOut(auth);
             closeProfileModal();
         };
 
-        // Navigácia sekcií
         window.switchSection = function(section) {
-            // Bezpečnostná poistka pre Admin Panel
             if (section === 'admin' && (!currentUser || currentUser.email !== ADMIN_EMAIL)) {
                 alert("Neoprávnený prístup!");
                 return;
@@ -565,24 +617,24 @@
             if (section === 'quiz') loadQuizQuestion();
         };
 
-        // Zmena miestnosti
         window.changeRoom = function(roomName) {
             currentRoom = roomName;
             document.getElementById('currentRoomTitle').innerText = roomName;
-            renderChatMessages();
+            loadRoomMessages();
         };
 
         function renderChatMessages() {
             const container = document.getElementById('chatMessages');
+            if (!container) return;
             const msgs = messagesDB[currentRoom] || [];
             container.innerHTML = msgs.map(m => `
                 <div class="flex items-start space-x-3">
-                    <div class="w-8 h-8 rounded-full bg-slovakia-blue text-white flex items-center justify-center font-bold text-xs">${m.nick.charAt(0)}</div>
+                    <div class="w-8 h-8 rounded-full bg-slovakia-blue text-white flex items-center justify-center font-bold text-xs">${(m.nick || 'A').charAt(0)}</div>
                     <div>
                         <div class="flex items-center space-x-2">
                             <span class="font-bold text-sm text-slovakia-blue">${m.nick}</span>
                             ${m.role === 'ADMIN' ? '<span class="bg-red-600 text-white text-[10px] px-1.5 py-0.2 rounded font-bold">ADMIN</span>' : ''}
-                            <span class="text-xs text-slate-400">${m.time}</span>
+                            <span class="text-xs text-slate-400">${m.time || ''}</span>
                         </div>
                         <p class="text-sm text-slate-700 mt-0.5">${m.text}</p>
                     </div>
@@ -591,7 +643,7 @@
             container.scrollTop = container.scrollHeight;
         }
 
-        window.sendChatMessage = function(e) {
+        window.sendChatMessage = async function(e) {
             e.preventDefault();
             if (!currentUser) return;
             const input = document.getElementById('chatInput');
@@ -599,17 +651,20 @@
             if (!text) return;
 
             const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            if (!messagesDB[currentRoom]) messagesDB[currentRoom] = [];
             
-            messagesDB[currentRoom].push({
-                nick: currentUser.nick,
-                text: text,
-                time: time,
-                role: currentUser.email === ADMIN_EMAIL ? 'ADMIN' : 'Člen'
-            });
-
-            input.value = '';
-            renderChatMessages();
+            try {
+                await addDoc(collection(db, "rooms", currentRoom, "messages"), {
+                    nick: currentUser.nick,
+                    text: text,
+                    time: time,
+                    role: currentUser.email === ADMIN_EMAIL ? 'ADMIN' : 'Člen',
+                    timestamp: serverTimestamp()
+                });
+                input.value = '';
+            } catch (err) {
+                console.error("Chyba pri odosielaní správy:", err);
+                alert("Nepodarilo sa odoslať správu do Firestore.");
+            }
         };
 
         window.sendQuickMsg = function(text) {
@@ -618,7 +673,9 @@
 
         function renderActiveUsers() {
             const list = document.getElementById('activeUsersList');
-            document.getElementById('activeUsersCount').innerText = usersDB.length;
+            const countEl = document.getElementById('activeUsersCount');
+            if (!list || !countEl) return;
+            countEl.innerText = usersDB.length;
             list.innerHTML = usersDB.map(u => `
                 <div class="flex items-center justify-between p-2 hover:bg-slate-50 rounded-lg">
                     <div class="flex items-center space-x-2">
@@ -632,12 +689,14 @@
         }
 
         window.renderStretko = function() {
-            const filter = document.getElementById('stretkoFilter').value;
+            const filterEl = document.getElementById('stretkoFilter');
             const grid = document.getElementById('stretkoGrid');
+            if (!filterEl || !grid) return;
+            const filter = filterEl.value;
             let filtered = usersDB;
 
             if (filter === 'zahraničie') {
-                filtered = usersDB.filter(u => u.location.includes('UK') || u.location.includes('Česká') || u.location.includes('Nemecko'));
+                filtered = usersDB.filter(u => (u.location || '').includes('UK') || (u.location || '').includes('Česká') || (u.location || '').includes('Nemecko'));
             } else if (filter !== 'všetci') {
                 filtered = usersDB.filter(u => u.location === filter);
             }
@@ -657,7 +716,11 @@
         };
 
         function renderCommunityPosts() {
-            document.getElementById('spolujazdaList').innerHTML = postsDB.spolujazda.map(p => `
+            const spList = document.getElementById('spolujazdaList');
+            const bazList = document.getElementById('bazarList');
+            if (!spList || !bazList) return;
+
+            spList.innerHTML = postsDB.spolujazda.map(p => `
                 <div class="bg-white p-3 rounded-lg border text-sm">
                     <div class="font-bold text-slovakia-blue">${p.title}</div>
                     <p class="text-xs text-slate-600 mt-1">${p.desc}</p>
@@ -668,7 +731,7 @@
                 </div>
             `).join('');
 
-            document.getElementById('bazarList').innerHTML = postsDB.bazar.map(p => `
+            bazList.innerHTML = postsDB.bazar.map(p => `
                 <div class="bg-white p-3 rounded-lg border text-sm">
                     <div class="font-bold text-slovakia-blue">${p.title}</div>
                     <p class="text-xs text-slate-600 mt-1">${p.desc}</p>
@@ -700,7 +763,9 @@
 
         function loadQuizQuestion() {
             const q = quizData[currentQuizIndex];
-            document.getElementById('quizQuestion').innerText = q.q;
+            const qEl = document.getElementById('quizQuestion');
+            if (!qEl) return;
+            qEl.innerText = q.q;
             const optContainer = document.getElementById('quizOptions');
             optContainer.innerHTML = q.options.map((opt, idx) => `
                 <button onclick="answerQuiz(${idx})" class="w-full text-left p-3 rounded-lg border hover:bg-blue-50 font-medium text-sm transition">${opt}</button>
@@ -725,10 +790,11 @@
             }, 2000);
         };
 
-        // Admin Panel render
         function renderAdminPanel() {
-            document.getElementById('adminTotalUsers').innerText = usersDB.length;
+            const totalEl = document.getElementById('adminTotalUsers');
             const tbody = document.getElementById('adminUsersTableBody');
+            if (!totalEl || !tbody) return;
+            totalEl.innerText = usersDB.length;
             tbody.innerHTML = usersDB.map(u => `
                 <tr class="border-b hover:bg-slate-50">
                     <td class="p-3 font-bold text-slovakia-blue">${u.nick}</td>
@@ -744,14 +810,11 @@
 
         window.deleteUser = function(email) {
             if (!currentUser || currentUser.email !== ADMIN_EMAIL) return;
-            if (confirm(`Naozaj chcete zablokovať/zmazať používateľa s e-mailom ${email}?`)) {
-                usersDB = usersDB.filter(u => u.email !== email);
-                renderActiveUsers();
-                renderAdminPanel();
-            }
+            alert("Používateľov z Auth zmažeš priamo vo Firebase Console.");
         };
 
         window.openProfileModal = function() {
+            if (!currentUser) return;
             document.getElementById('modalAvatar').innerText = currentUser.nick.charAt(0);
             document.getElementById('modalNick').innerText = currentUser.nick;
             document.getElementById('modalEmail').innerText = currentUser.email;
