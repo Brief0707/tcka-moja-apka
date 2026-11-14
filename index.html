@@ -48,7 +48,7 @@
                     <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Heslo</label>
                     <input type="password" id="loginPassword" required class="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-slovakia-blue focus:outline-none text-sm">
                 </div>
-                <button type="submit" class="w-full bg-slovakia-blue text-white py-3 rounded-lg font-bold hover:bg-opacity-90 transition shadow-lg">Prihlásiť sa</button>
+                <button type="submit" id="loginSubmitBtn" class="w-full bg-slovakia-blue text-white py-3 rounded-lg font-bold hover:bg-opacity-90 transition shadow-lg">Prihlásiť sa</button>
             </form>
 
             <!-- Register Form -->
@@ -87,13 +87,13 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Heslo</label>
-                    <input type="password" id="regPassword" required class="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-slovakia-blue focus:outline-none text-sm">
+                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Heslo (min. 6 znakov)</label>
+                    <input type="password" id="regPassword" minlength="6" required class="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-slovakia-blue focus:outline-none text-sm">
                 </div>
-                <button type="submit" class="w-full bg-slovakia-red text-white py-3 rounded-lg font-bold hover:bg-opacity-90 transition shadow-lg">Registrovať a overiť e-mail</button>
+                <button type="submit" id="regSubmitBtn" class="w-full bg-slovakia-red text-white py-3 rounded-lg font-bold hover:bg-opacity-90 transition shadow-lg">Registrovať a overiť e-mail</button>
             </form>
 
-            <div id="authError" class="mt-4 text-center text-red-600 text-xs font-semibold hidden"></div>
+            <div id="authMessage" class="mt-4 text-center text-xs font-semibold hidden p-3 rounded-lg"></div>
         </div>
     </div>
 
@@ -278,7 +278,7 @@
                     </div>
                     <div class="bg-red-50 border border-red-200 p-4 rounded-xl">
                         <h3 class="font-bold text-red-800 text-sm mb-1">Bezpečnostný stav</h3>
-                        <p class="text-sm font-bold text-green-600 mt-1">100% Chránené</p>
+                        <p class="text-sm font-bold text-green-600 mt-1">100% Firebase Auth</p>
                     </div>
                 </div>
 
@@ -322,15 +322,39 @@
         </div>
     </div>
 
-    <!-- SCRIPT LOGIKA -->
-    <script>
-        // Simulovaná databáza pre demo / VSC lokálny beh (vo Firebase sa prepojí na reálne Firestore)
-        let currentUser = null;
+    <!-- FIREBASE SDK & SCRIPT LOGIKA -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { 
+            getAuth, 
+            signInWithEmailAndPassword, 
+            createUserWithEmailAndPassword, 
+            sendEmailVerification, 
+            onAuthStateChanged, 
+            signOut,
+            updateProfile
+        } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+        // Tvoja reálna Firebase konfigurácia
+        const firebaseConfig = {
+            apiKey: "AIzaSyArSiSTbikntlFlk5G3Y81kQstIlcxMaMo",
+            authDomain: "tcka-apka.firebaseapp.com",
+            projectId: "tcka-apka",
+            storageBucket: "tcka-apka.firebasestorage.app",
+            messagingSenderId: "570144187664",
+            appId: "1:570144187664:web:af4a0a3163748b9857f195",
+            measurementId: "G-11DVCCFJWZ"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
         const ADMIN_EMAIL = "rohar@gmail.com";
+        let currentUser = null;
         let currentRoom = "Hlavná sála";
         let currentSection = "chat";
 
-        // Ukážkové dáta správ a používateľov
+        // Lokálne dáta komunity (kým nezapojíš aj Firestore databázu)
         let usersDB = [
             { id: "1", nick: "Lubomír", email: "rohar@gmail.com", location: "Bratislavský", role: "ADMIN", verified: true, age: 28 },
             { id: "2", nick: "Zuzana_UK", email: "zuzana@uk.sk", location: "UK & Írsko", role: "Člen", verified: true, age: 26 },
@@ -339,7 +363,7 @@
 
         let messagesDB = {
             "Hlavná sála": [
-                { nick: "Lubomír", text: "Vitajte v novej slovenskej aplikácii T.cka!", time: "19:00", role: "ADMIN" },
+                { nick: "Lubomír", text: "Vitajte v zabezpečenej slovenskej aplikácii T.cka!", time: "19:00", role: "ADMIN" },
                 { nick: "Zuzana_UK", text: "Zdravím všetkých z Londýna! 🇬🇧", time: "19:02", role: "Člen" }
             ],
             "Tabuľa 18+": [
@@ -363,12 +387,70 @@
                 { title: "Praha -> Žilina", desc: "Jazda každý štvrtok večer.", author: "Majo_KE", contact: "RP" }
             ],
             bazar: [
-                { title: "Predám slovenskú cezmičku a bryndzu", desc: "Dovoz priamo zo Zvolena, osobný odbor Bristol.", author: "Lubomír", contact: "RP" }
+                { title: "Predám slovenskú cezmičku a bryndzu", desc: "Dovoz priamo zo Zvolena, osobný odber Bristol.", author: "Lubomír", contact: "RP" }
             ]
         };
 
+        function showAuthAlert(msg, isError = true) {
+            const box = document.getElementById('authMessage');
+            box.innerText = msg;
+            box.classList.remove('hidden', 'bg-red-100', 'text-red-700', 'bg-green-100', 'text-green-700');
+            if (isError) {
+                box.classList.add('bg-red-100', 'text-red-700');
+            } else {
+                box.classList.add('bg-green-100', 'text-green-700');
+            }
+        }
+
+        function hideAuthAlert() {
+            document.getElementById('authMessage').classList.add('hidden');
+        }
+
+        // Sledovanie prihláseného používateľa cez Firebase Auth
+        onAuthStateChanged(auth, (firebaseUser) => {
+            if (firebaseUser) {
+                const email = firebaseUser.email.toLowerCase();
+                const isAdmin = (email === ADMIN_EMAIL);
+
+                // Bežní používatelia musia mať overený e-mail; Adminovi (rohar@gmail.com) povolíme prístup aj hneď po vytvorení účtu
+                if (!firebaseUser.emailVerified && !isAdmin) {
+                    signOut(auth);
+                    showAuthAlert("Tvoj e-mail ešte nie je potvrdený. Skontroluj si schránku (aj Spam) a klikni na overovací odkaz.", true);
+                    return;
+                }
+
+                const savedLoc = localStorage.getItem('tcka_loc_' + firebaseUser.uid) || "Bratislavský";
+                currentUser = {
+                    uid: firebaseUser.uid,
+                    nick: firebaseUser.displayName || email.split('@')[0],
+                    email: email,
+                    location: savedLoc,
+                    role: isAdmin ? "ADMIN" : "Člen",
+                    verified: firebaseUser.emailVerified
+                };
+
+                if (!usersDB.some(u => u.email === email)) {
+                    usersDB.push({
+                        id: firebaseUser.uid,
+                        nick: currentUser.nick,
+                        email: email,
+                        location: savedLoc,
+                        role: currentUser.role,
+                        verified: currentUser.verified
+                    });
+                }
+
+                initAppSession();
+            } else {
+                currentUser = null;
+                document.getElementById('mainApp').classList.add('hidden');
+                document.getElementById('authScreen').classList.remove('hidden');
+            }
+        });
+
         // Auth prepínanie záložiek
-        function switchAuthTab(tab) {
+        window.switchAuthTab = function(tab) {
+            hideAuthAlert();
             const loginForm = document.getElementById('loginForm');
             const registerForm = document.getElementById('registerForm');
             const loginBtn = document.getElementById('tabLoginBtn');
@@ -385,46 +467,72 @@
                 regBtn.className = "flex-1 pb-3 font-bold text-sm border-b-2 border-slovakia-blue text-slovakia-blue transition";
                 loginBtn.className = "flex-1 pb-3 font-bold text-sm text-slate-400 hover:text-slate-600 transition";
             }
-        }
+        };
 
-        // Prihlásenie
-        function handleLogin(e) {
+        // Skutočné prihlásenie cez Firebase (overuje heslo!)
+        window.handleLogin = async function(e) {
             e.preventDefault();
+            hideAuthAlert();
             const email = document.getElementById('loginEmail').value.trim();
-            
-            // Určenie admina
-            const isAdmin = (email === ADMIN_EMAIL);
-            currentUser = {
-                nick: email.split('@')[0],
-                email: email,
-                location: "Bratislavský",
-                role: isAdmin ? "ADMIN" : "Člen",
-                verified: true
-            };
+            const password = document.getElementById('loginPassword').value;
+            const btn = document.getElementById('loginSubmitBtn');
 
-            initAppSession();
-        }
+            btn.disabled = true;
+            btn.innerText = "Overujem heslo...";
 
-        // Registrácia s upozornením na overovací e-mail
-        function handleRegister(e) {
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+            } catch (err) {
+                let msg = "Nesprávny e-mail alebo heslo.";
+                if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
+                    msg = "Nesprávny e-mail alebo heslo. Ak ešte nemáš účet, najprv sa zaregistruj v záložke Nová registrácia.";
+                } else if (err.code === 'auth/too-many-requests') {
+                    msg = "Príliš veľa neúspešných pokusov. Skús to o chvíľu znova.";
+                }
+                showAuthAlert(msg, true);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Prihlásiť sa";
+            }
+        };
+
+        // Skutočná registrácia + odoslanie overovacieho e-mailu
+        window.handleRegister = async function(e) {
             e.preventDefault();
+            hideAuthAlert();
             const nick = document.getElementById('regNick').value.trim();
             const email = document.getElementById('regEmail').value.trim();
+            const password = document.getElementById('regPassword').value;
             const location = document.getElementById('regLocation').value;
-            
-            const isAdmin = (email === ADMIN_EMAIL);
-            currentUser = {
-                nick: nick,
-                email: email,
-                location: location,
-                role: isAdmin ? "ADMIN" : "Člen",
-                verified: false
-            };
+            const btn = document.getElementById('regSubmitBtn');
 
-            alert(`Na e-mail ${email} bol odoslaný overovací odkaz. Prosím, potvrďte ho pre plný prístup.`);
-            currentUser.verified = true; // po kliknutí / pre demo ihned overené
-            initAppSession();
-        }
+            btn.disabled = true;
+            btn.innerText = "Vytváram účet...";
+
+            try {
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                await updateProfile(userCredential.user, { displayName: nick });
+                localStorage.setItem('tcka_loc_' + userCredential.user.uid, location);
+                await sendEmailVerification(userCredential.user);
+
+                if (email.toLowerCase() !== ADMIN_EMAIL) {
+                    await signOut(auth);
+                    switchAuthTab('login');
+                    showAuthAlert(`Účet vytvorený! Na ${email} sme poslali potvrdzovací odkaz. Po kliknutí naň sa môžeš prihlásiť.`, false);
+                }
+            } catch (err) {
+                let msg = "Chyba pri registrácii: " + err.message;
+                if (err.code === 'auth/email-already-in-use') {
+                    msg = "Tento e-mail je už zaregistrovaný. Prejdi na Prihlásenie.";
+                } else if (err.code === 'auth/weak-password') {
+                    msg = "Heslo je príliš slabé (zadaj aspoň 6 znakov).";
+                }
+                showAuthAlert(msg, true);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Registrovať a overiť e-mail";
+            }
+        };
 
         function initAppSession() {
             document.getElementById('authScreen').classList.add('hidden');
@@ -433,9 +541,12 @@
             document.getElementById('headerNick').innerText = currentUser.nick;
             document.getElementById('userAvatarInitial').innerText = currentUser.nick.charAt(0).toUpperCase();
 
-            if (currentUser.email === ADMIN_EMAIL || currentUser.role === "ADMIN") {
+            if (currentUser.email === ADMIN_EMAIL && currentUser.role === "ADMIN") {
                 document.getElementById('headerAdminBadge').classList.remove('hidden');
                 document.getElementById('navAdminBtn').classList.remove('hidden');
+            } else {
+                document.getElementById('headerAdminBadge').classList.add('hidden');
+                document.getElementById('navAdminBtn').classList.add('hidden');
             }
 
             renderChatMessages();
@@ -445,14 +556,19 @@
             renderAdminPanel();
         }
 
-        function handleLogout() {
-            currentUser = null;
-            document.getElementById('mainApp').classList.add('hidden');
-            document.getElementById('authScreen').classList.remove('hidden');
-        }
+        window.handleLogout = async function() {
+            await signOut(auth);
+            closeProfileModal();
+        };
 
         // Navigácia sekcií
-        function switchSection(section) {
+        window.switchSection = function(section) {
+            // Bezpečnostná poistka pre Admin Panel
+            if (section === 'admin' && (!currentUser || currentUser.email !== ADMIN_EMAIL)) {
+                alert("Neoprávnený prístup!");
+                return;
+            }
+
             currentSection = section;
             ['chat', 'stretko', 'community', 'quiz', 'admin'].forEach(s => {
                 const el = document.getElementById('section' + s.charAt(0).toUpperCase() + s.slice(1));
@@ -462,14 +578,14 @@
             document.getElementById('section' + section.charAt(0).toUpperCase() + section.slice(1)).classList.remove('hidden');
 
             if (section === 'quiz') loadQuizQuestion();
-        }
+        };
 
         // Zmena miestnosti
-        function changeRoom(roomName) {
+        window.changeRoom = function(roomName) {
             currentRoom = roomName;
             document.getElementById('currentRoomTitle').innerText = roomName;
             renderChatMessages();
-        }
+        };
 
         function renderChatMessages() {
             const container = document.getElementById('chatMessages');
@@ -490,8 +606,9 @@
             container.scrollTop = container.scrollHeight;
         }
 
-        function sendChatMessage(e) {
+        window.sendChatMessage = function(e) {
             e.preventDefault();
+            if (!currentUser) return;
             const input = document.getElementById('chatInput');
             const text = input.value.trim();
             if (!text) return;
@@ -503,16 +620,16 @@
                 nick: currentUser.nick,
                 text: text,
                 time: time,
-                role: currentUser.email === ADMIN_EMAIL ? 'ADMIN' : currentUser.role
+                role: currentUser.email === ADMIN_EMAIL ? 'ADMIN' : 'Člen'
             });
 
             input.value = '';
             renderChatMessages();
-        }
+        };
 
-        function sendQuickMsg(text) {
+        window.sendQuickMsg = function(text) {
             document.getElementById('chatInput').value = text;
-        }
+        };
 
         function renderActiveUsers() {
             const list = document.getElementById('activeUsersList');
@@ -529,7 +646,7 @@
             `).join('');
         }
 
-        function renderStretko() {
+        window.renderStretko = function() {
             const filter = document.getElementById('stretkoFilter').value;
             const grid = document.getElementById('stretkoGrid');
             let filtered = usersDB;
@@ -552,7 +669,7 @@
                     <button onclick="alert('Odoslaná súkromná správa používateľovi ${u.nick}')" class="w-full bg-slovakia-blue text-white py-2 rounded-lg text-xs font-bold hover:bg-opacity-90 transition">Poslať RP správu</button>
                 </div>
             `).join('');
-        }
+        };
 
         function renderCommunityPosts() {
             document.getElementById('spolujazdaList').innerHTML = postsDB.spolujazda.map(p => `
@@ -578,7 +695,7 @@
             `).join('');
         }
 
-        function openAddPostModal(type) {
+        window.openAddPostModal = function(type) {
             const title = prompt("Zadajte názov ponuky/inzerátu:");
             if (!title) return;
             const desc = prompt("Zadajte popis:");
@@ -586,7 +703,7 @@
 
             postsDB[type].push({ title, desc, author: currentUser.nick, contact: "RP" });
             renderCommunityPosts();
-        }
+        };
 
         // Kvíz
         const quizData = [
@@ -606,7 +723,7 @@
             document.getElementById('quizResult').classList.add('hidden');
         }
 
-        function answerQuiz(idx) {
+        window.answerQuiz = function(idx) {
             const q = quizData[currentQuizIndex];
             const res = document.getElementById('quizResult');
             res.classList.remove('hidden');
@@ -621,7 +738,7 @@
                 currentQuizIndex = (currentQuizIndex + 1) % quizData.length;
                 loadQuizQuestion();
             }, 2000);
-        }
+        };
 
         // Admin Panel render
         function renderAdminPanel() {
@@ -640,26 +757,28 @@
             `).join('');
         }
 
-        function deleteUser(email) {
+        window.deleteUser = function(email) {
+            if (!currentUser || currentUser.email !== ADMIN_EMAIL) return;
             if (confirm(`Naozaj chcete zablokovať/zmazať používateľa s e-mailom ${email}?`)) {
                 usersDB = usersDB.filter(u => u.email !== email);
                 renderActiveUsers();
                 renderAdminPanel();
             }
-        }
+        };
 
-        function openProfileModal() {
+        window.openProfileModal = function() {
             document.getElementById('modalAvatar').innerText = currentUser.nick.charAt(0);
             document.getElementById('modalNick').innerText = currentUser.nick;
             document.getElementById('modalEmail').innerText = currentUser.email;
             document.getElementById('modalLoc').innerText = currentUser.location;
             document.getElementById('modalRole').innerText = currentUser.role;
+            document.getElementById('modalVerified').innerText = currentUser.verified ? "Overený" : "Admin účet";
             document.getElementById('profileModal').classList.remove('hidden');
-        }
+        };
 
-        function closeProfileModal() {
+        window.closeProfileModal = function() {
             document.getElementById('profileModal').classList.add('hidden');
-        }
+        };
     </script>
 </body>
 </html>
