@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>T.cka — Moja Apka</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        slovakia: { blue: '#0b2447', red: '#c51605', accent: '#19376d' }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-100 text-slate-800 font-sans antialiased min-h-screen flex flex-col">
+
+    <!-- AUTH SCREEN (Login / Register) -->
+    <div id="authScreen" class="fixed inset-0 bg-slovakia-blue z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 relative overflow-hidden">
+            <div class="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-blue-900 via-white to-red-600"></div>
+            
+            <div class="text-center mb-8">
+                <h1 class="text-3xl font-black tracking-tight text-slovakia-blue">T.CKA</h1>
+                <p class="text-xs font-semibold text-slovakia-red uppercase tracking-widest mt-1">Moja Slovenská Komunita</p>
+            </div>
+
+            <!-- Prepínanie prihlásenia / registrácie -->
+            <div class="flex border-b border-slate-200 mb-6">
+                <button id="tabLoginBtn" onclick="switchAuthTab('login')" class="flex-1 pb-3 font-bold text-sm border-b-2 border-slovakia-blue text-slovakia-blue transition">Prihlásenie</button>
+                <button id="tabRegBtn" onclick="switchAuthTab('register')" class="flex-1 pb-3 font-bold text-sm text-slate-400 hover:text-slate-600 transition">Nová registrácia</button>
+            </div>
+
+            <!-- Login Form -->
+            <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">E-mailová adresa</label>
+                    <input type="email" id="loginEmail" required class="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-slovakia-blue focus:outline-none text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Heslo</label>
+                    <input type="password" id="loginPassword" required class="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-slovakia-blue focus:outline-none text-sm">
+                </div>
+                <button type="submit" class="w-full bg-slovakia-blue text-white py-3 rounded-lg font-bold hover:bg-opacity-90 transition shadow-lg">Prihlásiť sa</button>
+            </form>
+
+            <!-- Register Form -->
+            <form id="registerForm" onsubmit="handleRegister(event)" class="space-y-4 hidden">
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Prezývka (Nick)</label>
+                    <input type="text" id="regNick" required class="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-slovakia-blue focus:outline-none text-sm" placeholder="napr. Ľubo_UK">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">E-mail (bude overený)</label>
+                    <input type="email" id="regEmail" required class="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-slovakia-blue focus:outline-none text-sm" placeholder="tvoj@email.sk">
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Vek</label>
+                        <input type="number" id="regAge" min="15" max="99" required class="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-slovakia-blue focus:outline-none text-sm" value="25">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Pohlavie</label>
+                        <select id="regGender" class="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-slovakia-blue focus:outline-none text-sm bg-white">
+                            <option value="muž">Muž</option>
+                            <option value="žena">Žena</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Kraj / Lokalita / Zahraničie</label>
+                    <select id="regLocation" class="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-slovakia-blue focus:outline-none text-sm bg-white">
+                        <option value="Bratislavský">Bratislavský kraj</option>
+                        <option value="Západné Slovensko">Západné Slovensko</option>
+                        <option value="Stredné Slovensko">Stredné Slovensko</option>
+                        <option value="Východné Slovensko">Východné Slovensko</option>
+                        <option value="UK & Írsko">🇬🇧 UK & Írsko</option>
+                        <option value="Česká republika">🇨🇿 Česká republika</option>
+                        <option value="Nemecko & Rakúsko">🇩🇪/🇦🇹 Nemecko & Rakúsko</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Heslo</label>
+                    <input type="password" id="regPassword" required class="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-slovakia-blue focus:outline-none text-sm">
+                </div>
+                <button type="submit" class="w-full bg-slovakia-red text-white py-3 rounded-lg font-bold hover:bg-opacity-90 transition shadow-lg">Registrovať a overiť e-mail</button>
+            </form>
+
+            <div id="authError" class="mt-4 text-center text-red-600 text-xs font-semibold hidden"></div>
+        </div>
+    </div>
+
+    <!-- MAIN APP WRAPPER -->
+    <div id="mainApp" class="flex-1 flex flex-col hidden">
+        <!-- TOP NAVIGATION -->
+        <header class="bg-slovakia-blue text-white shadow-md">
+            <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+                <div class="flex items-center space-x-6">
+                    <span class="text-xl font-black tracking-wider text-white">T.CKA <span class="text-red-500 text-xs px-2 py-0.5 bg-white rounded-full ml-1 font-bold">SK</span></span>
+                    <nav class="hidden md:flex space-x-1">
+                        <button onclick="switchSection('chat')" id="navChatBtn" class="px-4 py-2 rounded-lg bg-blue-900 text-sm font-semibold transition"><i class="fa-solid fa-comments mr-2"></i>Miestnosti</button>
+                        <button onclick="switchSection('stretko')" id="navStretkoBtn" class="px-4 py-2 rounded-lg hover:bg-blue-900 text-sm font-semibold transition"><i class="fa-solid fa-heart mr-2"></i>Stretko</button>
+                        <button onclick="switchSection('community')" id="navCommBtn" class="px-4 py-2 rounded-lg hover:bg-blue-900 text-sm font-semibold transition"><i class="fa-solid fa-earth-europe mr-2"></i>Spolujazda & Bazár</button>
+                        <button onclick="switchSection('quiz')" id="navQuizBtn" class="px-4 py-2 rounded-lg hover:bg-blue-900 text-sm font-semibold transition"><i class="fa-solid fa-brain mr-2"></i>Slovenský Kvíz</button>
+                        <button onclick="switchSection('admin')" id="navAdminBtn" class="px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-semibold transition hidden"><i class="fa-solid fa-shield-halved mr-2"></i>Admin Panel</button>
+                    </nav>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <button onclick="openProfileModal()" class="flex items-center space-x-2 bg-blue-900 hover:bg-blue-800 px-3 py-1.5 rounded-lg text-sm transition">
+                        <div class="w-7 h-7 bg-red-600 rounded-full flex items-center justify-center font-bold text-xs" id="userAvatarInitial">L</div>
+                        <span id="headerNick" class="font-medium">Načítavam...</span>
+                        <span id="headerAdminBadge" class="bg-red-600 text-[10px] uppercase px-1.5 py-0.5 rounded font-bold hidden">ADMIN</span>
+                    </button>
+                    <button onclick="handleLogout()" class="text-slate-300 hover:text-white p-2 rounded-lg transition" title="Odhlásiť sa"><i class="fa-solid fa-right-from-bracket"></i></button>
+                </div>
+            </div>
+        </header>
+
+        <!-- CONTENT AREA -->
+        <main class="flex-1 max-w-7xl w-full mx-auto p-4 flex gap-4">
+            
+            <!-- SECTION: CHAT (Default) -->
+            <div id="sectionChat" class="flex-1 flex gap-4">
+                <!-- Left Rooms Menu -->
+                <div class="w-64 bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex flex-col">
+                    <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Hlavné miestnosti</h2>
+                    <div class="space-y-1 mb-6" id="mainRoomsList">
+                        <button onclick="changeRoom('Hlavná sála')" class="room-btn w-full text-left px-3 py-2 rounded-lg text-sm font-medium bg-blue-50 text-slovakia-blue flex items-center justify-between"><span><i class="fa-solid fa-fire mr-2 text-slovakia-red"></i>Hlavná sála</span><span class="text-xs bg-slovakia-blue text-white px-2 py-0.5 rounded-full" id="count-Hlavná sála">0</span></button>
+                        <button onclick="changeRoom('Tabuľa 18+')" class="room-btn w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 flex items-center justify-between"><span><i class="fa-solid fa-triangle-exclamation mr-2 text-amber-500"></i>Tabuľa 18+</span><span class="text-xs bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full" id="count-Tabuľa 18+">0</span></button>
+                        <button onclick="changeRoom('Pikošky a zábava')" class="room-btn w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 flex items-center justify-between"><span><i class="fa-solid fa-face-laugh-wink mr-2 text-blue-500"></i>Pikošky a zábava</span><span class="text-xs bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full" id="count-Pikošky a zábava">0</span></button>
+                    </div>
+
+                    <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Slováci v zahraničí</h2>
+                    <div class="space-y-1 mb-6" id="foreignRoomsList">
+                        <button onclick="changeRoom('Slováci v UK & Írsku')" class="room-btn w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 flex items-center justify-between"><span>🇬🇧 UK & Írsko</span><span class="text-xs bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full" id="count-Slováci v UK & Írsku">0</span></button>
+                        <button onclick="changeRoom('Slováci v Česku')" class="room-btn w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 flex items-center justify-between"><span>🇨🇿 V Česku</span><span class="text-xs bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full" id="count-Slováci v Česku">0</span></button>
+                        <button onclick="changeRoom('Slováci v DE & AT')" class="room-btn w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 flex items-center justify-between"><span>🇩🇪/🇦🇹 DE & AT</span><span class="text-xs bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full" id="count-Slováci v DE & AT">0</span></button>
+                    </div>
+
+                    <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Slovenské kraje</h2>
+                    <div class="space-y-1 overflow-y-auto flex-1 max-h-48 text-sm" id="regionRoomsList">
+                        <button onclick="changeRoom('Bratislavský kraj')" class="room-btn w-full text-left px-3 py-1.5 rounded text-slate-600 hover:bg-slate-50">Bratislavský kraj</button>
+                        <button onclick="changeRoom('Západné Slovensko')" class="room-btn w-full text-left px-3 py-1.5 rounded text-slate-600 hover:bg-slate-50">Západné Slovensko</button>
+                        <button onclick="changeRoom('Stredné Slovensko')" class="room-btn w-full text-left px-3 py-1.5 rounded text-slate-600 hover:bg-slate-50">Stredné Slovensko</button>
+                        <button onclick="changeRoom('Východné Slovensko')" class="room-btn w-full text-left px-3 py-1.5 rounded text-slate-600 hover:bg-slate-50">Východné Slovensko</button>
+                    </div>
+                </div>
+
+                <!-- Chat Box Center -->
+                <div class="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col overflow-hidden">
+                    <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+                        <div>
+                            <h2 id="currentRoomTitle" class="text-lg font-bold text-slovakia-blue">Hlavná sála</h2>
+                            <p id="currentRoomDesc" class="text-xs text-slate-500">Všeobecná diskusia pre všetkých Slovákov doma aj vo svete.</p>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <span class="w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse"></span>
+                            <span class="text-xs font-semibold text-slate-600">Naživo</span>
+                        </div>
+                    </div>
+
+                    <!-- Messages Feed -->
+                    <div id="chatMessages" class="flex-1 p-6 overflow-y-auto space-y-4">
+                        <!-- Dynamické správy -->
+                    </div>
+
+                    <!-- Quick phrases -->
+                    <div class="px-4 py-2 bg-slate-50 border-t border-slate-200 flex gap-2 overflow-x-auto text-xs">
+                        <span class="text-slate-400 font-bold self-center">Rýchle:</span>
+                        <button onclick="sendQuickMsg('Čauko! 👋')" class="px-2.5 py-1 bg-white border border-slate-200 rounded-full hover:bg-slate-100 whitespace-nowrap">Čauko! 👋</button>
+                        <button onclick="sendQuickMsg('Ako sa máte?')" class="px-2.5 py-1 bg-white border border-slate-200 rounded-full hover:bg-slate-100 whitespace-nowrap">Ako sa máte?</button>
+                        <button onclick="sendQuickMsg('Na pivo 🍺')" class="px-2.5 py-1 bg-white border border-slate-200 rounded-full hover:bg-slate-100 whitespace-nowrap">Na pivo 🍺</button>
+                        <button onclick="sendQuickMsg('Pozdrav zo zahraničia ✈️')" class="px-2.5 py-1 bg-white border border-slate-200 rounded-full hover:bg-slate-100 whitespace-nowrap">Pozdrav zo zahraničia ✈️</button>
+                        <button onclick="sendQuickMsg('Halušky 🥔')" class="px-2.5 py-1 bg-white border border-slate-200 rounded-full hover:bg-slate-100 whitespace-nowrap">Halušky 🥔</button>
+                    </div>
+
+                    <!-- Input form -->
+                    <form onsubmit="sendChatMessage(event)" class="p-4 bg-white border-t border-slate-200 flex gap-2">
+                        <input type="text" id="chatInput" placeholder="Napíš správu do miestnosti..." class="flex-1 px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-slovakia-blue focus:outline-none text-sm">
+                        <button type="submit" class="bg-slovakia-blue text-white px-6 py-3 rounded-lg font-bold hover:bg-opacity-90 transition flex items-center space-x-2"><span>Poslať</span><i class="fa-solid fa-paper-plane"></i></button>
+                    </form>
+                </div>
+
+                <!-- Right Users Sidebar -->
+                <div class="w-64 bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex flex-col">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Aktívni členovia</h3>
+                        <span id="activeUsersCount" class="text-xs bg-blue-100 text-slovakia-blue font-bold px-2 py-0.5 rounded-full">0</span>
+                    </div>
+                    <div id="activeUsersList" class="flex-1 overflow-y-auto space-y-2">
+                        <!-- Zoznam členov -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION: STRETKO -->
+            <div id="sectionStretko" class="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 p-6 hidden">
+                <div class="flex justify-between items-center mb-6">
+                    <div>
+                        <h2 class="text-2xl font-bold text-slovakia-blue">Stretko (Zoznamka a priatelia)</h2>
+                        <p class="text-sm text-slate-500">Hľadaj kamarátov alebo známosti podľa kraja a zahraničia.</p>
+                    </div>
+                    <select id="stretkoFilter" onchange="renderStretko()" class="px-3 py-2 border rounded-lg text-sm bg-white font-medium">
+                        <option value="všetci">Všetci členovia</option>
+                        <option value="zahraničie">Slováci v zahraničí (UK, CZ, DE)</option>
+                        <option value="Bratislavský">Bratislavský kraj</option>
+                    </select>
+                </div>
+                <div id="stretkoGrid" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <!-- Karty používateľov -->
+                </div>
+            </div>
+
+            <!-- SECTION: COMMUNITY (Spolujazda & Bazár) -->
+            <div id="sectionCommunity" class="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 p-6 hidden flex-col">
+                <h2 class="text-2xl font-bold text-slovakia-blue mb-1">Spolujazda SK ↔ EU & Slovenský Bazár</h2>
+                <p class="text-sm text-slate-500 mb-6">Ponuky na cestovanie domov do SR/zahraničia a bazár pre komunitu.</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1 overflow-y-auto">
+                    <!-- Spolujazda -->
+                    <div class="border rounded-xl p-4 bg-slate-50 flex flex-col">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="font-bold text-slovakia-blue"><i class="fa-solid fa-car-side mr-2 text-slovakia-red"></i>Spolujazda SK ↔ EU</h3>
+                            <button onclick="openAddPostModal('spolujazda')" class="text-xs bg-slovakia-blue text-white px-3 py-1.5 rounded font-bold hover:bg-opacity-90">+ Pridať ponuku</button>
+                        </div>
+                        <div id="spolujazdaList" class="space-y-3 flex-1 overflow-y-auto"></div>
+                    </div>
+                    <!-- Bazár -->
+                    <div class="border rounded-xl p-4 bg-slate-50 flex flex-col">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="font-bold text-slovakia-blue"><i class="fa-solid fa-store mr-2 text-slovakia-red"></i>Slovenský Bazár</h3>
+                            <button onclick="openAddPostModal('bazar')" class="text-xs bg-slovakia-blue text-white px-3 py-1.5 rounded font-bold hover:bg-opacity-90">+ Pridať inzerát</button>
+                        </div>
+                        <div id="bazarList" class="space-y-3 flex-1 overflow-y-auto"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION: QUIZ -->
+            <div id="sectionQuiz" class="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 p-8 hidden flex-col items-center justify-center text-center">
+                <div class="max-w-lg w-full">
+                    <span class="text-xs font-bold bg-red-100 text-slovakia-red px-3 py-1 rounded-full uppercase tracking-widest">Zábava a vedomosti</span>
+                    <h2 class="text-3xl font-black text-slovakia-blue mt-4 mb-2">Veľký slovenský kvíz</h2>
+                    <p class="text-sm text-slate-500 mb-8">Otestuj si svoje vedomosti o slovenských mestách, histórii, pamiatkach a tradíciách!</p>
+                    
+                    <div id="quizContainer" class="bg-slate-50 p-6 rounded-2xl border text-left mb-6">
+                        <h3 id="quizQuestion" class="font-bold text-lg text-slovakia-blue mb-4">Načítavam otázku...</h3>
+                        <div id="quizOptions" class="space-y-2"></div>
+                    </div>
+                    <div id="quizResult" class="text-lg font-bold text-slovakia-red hidden"></div>
+                </div>
+            </div>
+
+            <!-- SECTION: ADMIN PANEL (VÝHRADNE PRE TVOJ E-MAIL) -->
+            <div id="sectionAdmin" class="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 p-6 hidden flex-col">
+                <div class="flex items-center justify-between mb-6 pb-4 border-b">
+                    <div>
+                        <h2 class="text-2xl font-black text-slovakia-red flex items-center"><i class="fa-solid fa-shield-halved mr-3"></i>Správcovský Admin Panel</h2>
+                        <p class="text-xs text-slate-500">Exkluzívna administrácia pre hlavného správcu (rohar@gmail.com).</p>
+                    </div>
+                    <span class="bg-red-100 text-slovakia-red px-3 py-1 rounded-full font-bold text-xs">Autorizovaný prístup</span>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                    <div class="bg-blue-50 border border-blue-200 p-4 rounded-xl">
+                        <h3 class="font-bold text-slovakia-blue text-sm mb-1">Počet členov</h3>
+                        <p id="adminTotalUsers" class="text-2xl font-black text-slovakia-blue">0</p>
+                    </div>
+                    <div class="bg-amber-50 border border-amber-200 p-4 rounded-xl">
+                        <h3 class="font-bold text-amber-800 text-sm mb-1">Aktívne miestnosti</h3>
+                        <p class="text-2xl font-black text-amber-800">9</p>
+                    </div>
+                    <div class="bg-red-50 border border-red-200 p-4 rounded-xl">
+                        <h3 class="font-bold text-red-800 text-sm mb-1">Bezpečnostný stav</h3>
+                        <p class="text-sm font-bold text-green-600 mt-1">100% Chránené</p>
+                    </div>
+                </div>
+
+                <h3 class="font-bold text-sm text-slate-500 uppercase tracking-wider mb-3">Správa všetkých používateľov</h3>
+                <div class="border rounded-xl overflow-hidden flex-1">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-100 text-xs font-bold text-slate-600 uppercase border-b">
+                                <th class="p-3">Prezývka</th>
+                                <th class="p-3">E-mail</th>
+                                <th class="p-3">Lokalita</th>
+                                <th class="p-3">Stav</th>
+                                <th class="p-3 text-right">Akcie</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adminUsersTableBody" class="text-sm divide-y">
+                            <!-- Dynamický zoznam -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- PROFILE MODAL -->
+    <div id="profileModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 relative">
+            <button onclick="closeProfileModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 bg-slovakia-red text-white rounded-full flex items-center justify-center text-2xl font-black mx-auto mb-3" id="modalAvatar">L</div>
+                <h3 id="modalNick" class="text-xl font-bold text-slovakia-blue">Načítavam...</h3>
+                <p id="modalEmail" class="text-xs text-slate-500">email@adresa.sk</p>
+            </div>
+            <div class="space-y-3 text-sm bg-slate-50 p-4 rounded-xl mb-6">
+                <div class="flex justify-between"><span class="text-slate-500">Lokalita:</span> <span id="modalLoc" class="font-semibold">Bratislavský</span></div>
+                <div class="flex justify-between"><span class="text-slate-500">Oprávnenie:</span> <span id="modalRole" class="font-semibold text-slovakia-red">Člen</span></div>
+                <div class="flex justify-between"><span class="text-slate-500">Stav e-mailu:</span> <span id="modalVerified" class="font-semibold text-green-600">Overený</span></div>
+            </div>
+            <button onclick="handleLogout()" class="w-full bg-slovakia-red text-white py-3 rounded-lg font-bold hover:bg-opacity-90 transition">Odhlásiť sa z účtu</button>
+        </div>
+    </div>
+
+    <!-- SCRIPT LOGIKA -->
+    <script>
+        // Simulovaná databáza pre demo / VSC lokálny beh (vo Firebase sa prepojí na reálne Firestore)
+        let currentUser = null;
+        const ADMIN_EMAIL = "rohar@gmail.com";
+        let currentRoom = "Hlavná sála";
+        let currentSection = "chat";
+
+        // Ukážkové dáta správ a používateľov
+        let usersDB = [
+            { id: "1", nick: "Lubomír", email: "rohar@gmail.com", location: "Bratislavský", role: "ADMIN", verified: true, age: 28 },
+            { id: "2", nick: "Zuzana_UK", email: "zuzana@uk.sk", location: "UK & Írsko", role: "Člen", verified: true, age: 26 },
+            { id: "3", nick: "Majo_KE", email: "majo@kosice.sk", location: "Východné Slovensko", role: "Člen", verified: true, age: 31 }
+        ];
+
+        let messagesDB = {
+            "Hlavná sála": [
+                { nick: "Lubomír", text: "Vitajte v novej slovenskej aplikácii T.cka!", time: "19:00", role: "ADMIN" },
+                { nick: "Zuzana_UK", text: "Zdravím všetkých z Londýna! 🇬🇧", time: "19:02", role: "Člen" }
+            ],
+            "Tabuľa 18+": [
+                { nick: "Majo_KE", text: "Diskusia pre dospelých členov.", time: "18:30", role: "Člen" }
+            ],
+            "Pikošky a zábava": [],
+            "Slováci v UK & Írsku": [
+                { nick: "Zuzana_UK", text: "Hľadá sa niekto na nedeľnú slovenskú kávu v Londýne?", time: "17:15", role: "Člen" }
+            ],
+            "Slováci v Česku": [],
+            "Slováci v DE & AT": [],
+            "Bratislavský kraj": [],
+            "Západné Slovensko": [],
+            "Stredné Slovensko": [],
+            "Východné Slovensko": []
+        };
+
+        let postsDB = {
+            spolujazda: [
+                { title: "Londýn -> Bratislava", desc: "Idem budúci piatok, voľné 3 miesta v aute.", author: "Zuzana_UK", contact: "RP" },
+                { title: "Praha -> Žilina", desc: "Jazda každý štvrtok večer.", author: "Majo_KE", contact: "RP" }
+            ],
+            bazar: [
+                { title: "Predám slovenskú cezmičku a bryndzu", desc: "Dovoz priamo zo Zvolena, osobný odbor Bristol.", author: "Lubomír", contact: "RP" }
+            ]
+        };
+
+        // Auth prepínanie záložiek
+        function switchAuthTab(tab) {
+            const loginForm = document.getElementById('loginForm');
+            const registerForm = document.getElementById('registerForm');
+            const loginBtn = document.getElementById('tabLoginBtn');
+            const regBtn = document.getElementById('tabRegBtn');
+
+            if (tab === 'login') {
+                loginForm.classList.remove('hidden');
+                registerForm.classList.add('hidden');
+                loginBtn.className = "flex-1 pb-3 font-bold text-sm border-b-2 border-slovakia-blue text-slovakia-blue transition";
+                regBtn.className = "flex-1 pb-3 font-bold text-sm text-slate-400 hover:text-slate-600 transition";
+            } else {
+                loginForm.classList.add('hidden');
+                registerForm.classList.remove('hidden');
+                regBtn.className = "flex-1 pb-3 font-bold text-sm border-b-2 border-slovakia-blue text-slovakia-blue transition";
+                loginBtn.className = "flex-1 pb-3 font-bold text-sm text-slate-400 hover:text-slate-600 transition";
+            }
+        }
+
+        // Prihlásenie
+        function handleLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value.trim();
+            
+            // Určenie admina
+            const isAdmin = (email === ADMIN_EMAIL);
+            currentUser = {
+                nick: email.split('@')[0],
+                email: email,
+                location: "Bratislavský",
+                role: isAdmin ? "ADMIN" : "Člen",
+                verified: true
+            };
+
+            initAppSession();
+        }
+
+        // Registrácia s upozornením na overovací e-mail
+        function handleRegister(e) {
+            e.preventDefault();
+            const nick = document.getElementById('regNick').value.trim();
+            const email = document.getElementById('regEmail').value.trim();
+            const location = document.getElementById('regLocation').value;
+            
+            const isAdmin = (email === ADMIN_EMAIL);
+            currentUser = {
+                nick: nick,
+                email: email,
+                location: location,
+                role: isAdmin ? "ADMIN" : "Člen",
+                verified: false
+            };
+
+            alert(`Na e-mail ${email} bol odoslaný overovací odkaz. Prosím, potvrďte ho pre plný prístup.`);
+            currentUser.verified = true; // po kliknutí / pre demo ihned overené
+            initAppSession();
+        }
+
+        function initAppSession() {
+            document.getElementById('authScreen').classList.add('hidden');
+            document.getElementById('mainApp').classList.remove('hidden');
+
+            document.getElementById('headerNick').innerText = currentUser.nick;
+            document.getElementById('userAvatarInitial').innerText = currentUser.nick.charAt(0).toUpperCase();
+
+            if (currentUser.email === ADMIN_EMAIL || currentUser.role === "ADMIN") {
+                document.getElementById('headerAdminBadge').classList.remove('hidden');
+                document.getElementById('navAdminBtn').classList.remove('hidden');
+            }
+
+            renderChatMessages();
+            renderActiveUsers();
+            renderStretko();
+            renderCommunityPosts();
+            renderAdminPanel();
+        }
+
+        function handleLogout() {
+            currentUser = null;
+            document.getElementById('mainApp').classList.add('hidden');
+            document.getElementById('authScreen').classList.remove('hidden');
+        }
+
+        // Navigácia sekcií
+        function switchSection(section) {
+            currentSection = section;
+            ['chat', 'stretko', 'community', 'quiz', 'admin'].forEach(s => {
+                const el = document.getElementById('section' + s.charAt(0).toUpperCase() + s.slice(1));
+                if (el) el.classList.add('hidden');
+            });
+
+            document.getElementById('section' + section.charAt(0).toUpperCase() + section.slice(1)).classList.remove('hidden');
+
+            if (section === 'quiz') loadQuizQuestion();
+        }
+
+        // Zmena miestnosti
+        function changeRoom(roomName) {
+            currentRoom = roomName;
+            document.getElementById('currentRoomTitle').innerText = roomName;
+            renderChatMessages();
+        }
+
+        function renderChatMessages() {
+            const container = document.getElementById('chatMessages');
+            const msgs = messagesDB[currentRoom] || [];
+            container.innerHTML = msgs.map(m => `
+                <div class="flex items-start space-x-3">
+                    <div class="w-8 h-8 rounded-full bg-slovakia-blue text-white flex items-center justify-center font-bold text-xs">${m.nick.charAt(0)}</div>
+                    <div>
+                        <div class="flex items-center space-x-2">
+                            <span class="font-bold text-sm text-slovakia-blue">${m.nick}</span>
+                            ${m.role === 'ADMIN' ? '<span class="bg-red-600 text-white text-[10px] px-1.5 py-0.2 rounded font-bold">ADMIN</span>' : ''}
+                            <span class="text-xs text-slate-400">${m.time}</span>
+                        </div>
+                        <p class="text-sm text-slate-700 mt-0.5">${m.text}</p>
+                    </div>
+                </div>
+            `).join('');
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function sendChatMessage(e) {
+            e.preventDefault();
+            const input = document.getElementById('chatInput');
+            const text = input.value.trim();
+            if (!text) return;
+
+            const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            if (!messagesDB[currentRoom]) messagesDB[currentRoom] = [];
+            
+            messagesDB[currentRoom].push({
+                nick: currentUser.nick,
+                text: text,
+                time: time,
+                role: currentUser.email === ADMIN_EMAIL ? 'ADMIN' : currentUser.role
+            });
+
+            input.value = '';
+            renderChatMessages();
+        }
+
+        function sendQuickMsg(text) {
+            document.getElementById('chatInput').value = text;
+        }
+
+        function renderActiveUsers() {
+            const list = document.getElementById('activeUsersList');
+            document.getElementById('activeUsersCount').innerText = usersDB.length;
+            list.innerHTML = usersDB.map(u => `
+                <div class="flex items-center justify-between p-2 hover:bg-slate-50 rounded-lg">
+                    <div class="flex items-center space-x-2">
+                        <span class="w-2.5 h-2.5 rounded-full ${u.role === 'ADMIN' ? 'bg-red-600' : 'bg-green-500'}"></span>
+                        <span class="text-sm font-medium text-slate-700">${u.nick}</span>
+                        ${u.role === 'ADMIN' ? '<span class="text-[9px] bg-red-100 text-red-600 font-bold px-1 rounded">ADMIN</span>' : ''}
+                    </div>
+                    <span class="text-xs text-slate-400">${u.location}</span>
+                </div>
+            `).join('');
+        }
+
+        function renderStretko() {
+            const filter = document.getElementById('stretkoFilter').value;
+            const grid = document.getElementById('stretkoGrid');
+            let filtered = usersDB;
+
+            if (filter === 'zahraničie') {
+                filtered = usersDB.filter(u => u.location.includes('UK') || u.location.includes('Česká') || u.location.includes('Nemecko'));
+            } else if (filter !== 'všetci') {
+                filtered = usersDB.filter(u => u.location === filter);
+            }
+
+            grid.innerHTML = filtered.map(u => `
+                <div class="border rounded-xl p-4 bg-slate-50 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="font-bold text-slovakia-blue text-lg">${u.nick}</span>
+                            <span class="text-xs bg-blue-100 text-slovakia-blue px-2 py-0.5 rounded font-semibold">${u.location}</span>
+                        </div>
+                        <p class="text-xs text-slate-500 mb-4">Hľadá nových priateľov a pokec v komunite.</p>
+                    </div>
+                    <button onclick="alert('Odoslaná súkromná správa používateľovi ${u.nick}')" class="w-full bg-slovakia-blue text-white py-2 rounded-lg text-xs font-bold hover:bg-opacity-90 transition">Poslať RP správu</button>
+                </div>
+            `).join('');
+        }
+
+        function renderCommunityPosts() {
+            document.getElementById('spolujazdaList').innerHTML = postsDB.spolujazda.map(p => `
+                <div class="bg-white p-3 rounded-lg border text-sm">
+                    <div class="font-bold text-slovakia-blue">${p.title}</div>
+                    <p class="text-xs text-slate-600 mt-1">${p.desc}</p>
+                    <div class="flex justify-between items-center mt-2 text-xs text-slate-400">
+                        <span>Od: ${p.author}</span>
+                        <span class="text-slovakia-red font-bold">Kontakt: ${p.contact}</span>
+                    </div>
+                </div>
+            `).join('');
+
+            document.getElementById('bazarList').innerHTML = postsDB.bazar.map(p => `
+                <div class="bg-white p-3 rounded-lg border text-sm">
+                    <div class="font-bold text-slovakia-blue">${p.title}</div>
+                    <p class="text-xs text-slate-600 mt-1">${p.desc}</p>
+                    <div class="flex justify-between items-center mt-2 text-xs text-slate-400">
+                        <span>Od: ${p.author}</span>
+                        <span class="text-slovakia-red font-bold">Kontakt: ${p.contact}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function openAddPostModal(type) {
+            const title = prompt("Zadajte názov ponuky/inzerátu:");
+            if (!title) return;
+            const desc = prompt("Zadajte popis:");
+            if (!desc) return;
+
+            postsDB[type].push({ title, desc, author: currentUser.nick, contact: "RP" });
+            renderCommunityPosts();
+        }
+
+        // Kvíz
+        const quizData = [
+            { q: "Aké je hlavné mesto Slovenska?", options: ["Košice", "Bratislava", "Žilina", "Nitra"], correct: 1 },
+            { q: "Ktorá rieka preteká cez Bratislavu?", options: ["Hron", "Dunaj", "Váh", "Tisa"], correct: 1 },
+            { q: "Aká je najvyššia hora na Slovensku?", options: ["Kriváň", "Gerlachovský štít", "Chopok", "Lomnický štít"], correct: 1 }
+        ];
+        let currentQuizIndex = 0;
+
+        function loadQuizQuestion() {
+            const q = quizData[currentQuizIndex];
+            document.getElementById('quizQuestion').innerText = q.q;
+            const optContainer = document.getElementById('quizOptions');
+            optContainer.innerHTML = q.options.map((opt, idx) => `
+                <button onclick="answerQuiz(${idx})" class="w-full text-left p-3 rounded-lg border hover:bg-blue-50 font-medium text-sm transition">${opt}</button>
+            `).join('');
+            document.getElementById('quizResult').classList.add('hidden');
+        }
+
+        function answerQuiz(idx) {
+            const q = quizData[currentQuizIndex];
+            const res = document.getElementById('quizResult');
+            res.classList.remove('hidden');
+            if (idx === q.correct) {
+                res.innerText = "Správne! 🎉";
+                res.className = "text-lg font-bold text-green-600 mt-4";
+            } else {
+                res.innerText = "Nesprávne. Skús ďalšiu otázku.";
+                res.className = "text-lg font-bold text-slovakia-red mt-4";
+            }
+            setTimeout(() => {
+                currentQuizIndex = (currentQuizIndex + 1) % quizData.length;
+                loadQuizQuestion();
+            }, 2000);
+        }
+
+        // Admin Panel render
+        function renderAdminPanel() {
+            document.getElementById('adminTotalUsers').innerText = usersDB.length;
+            const tbody = document.getElementById('adminUsersTableBody');
+            tbody.innerHTML = usersDB.map(u => `
+                <tr class="border-b hover:bg-slate-50">
+                    <td class="p-3 font-bold text-slovakia-blue">${u.nick}</td>
+                    <td class="p-3 text-slate-500">${u.email}</td>
+                    <td class="p-3">${u.location}</td>
+                    <td class="p-3"><span class="px-2 py-0.5 rounded text-xs font-bold ${u.role === 'ADMIN' ? 'bg-red-100 text-slovakia-red' : 'bg-green-100 text-green-700'}">${u.role}</span></td>
+                    <td class="p-3 text-right">
+                        ${u.email !== ADMIN_EMAIL ? `<button onclick="deleteUser('${u.email}')" class="text-xs bg-red-600 text-white px-2.5 py-1 rounded font-bold hover:bg-opacity-90">Zmazať / Blokovať</button>` : '<span class="text-xs text-slate-400 font-bold">Hlavný Admin</span>'}
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function deleteUser(email) {
+            if (confirm(`Naozaj chcete zablokovať/zmazať používateľa s e-mailom ${email}?`)) {
+                usersDB = usersDB.filter(u => u.email !== email);
+                renderActiveUsers();
+                renderAdminPanel();
+            }
+        }
+
+        function openProfileModal() {
+            document.getElementById('modalAvatar').innerText = currentUser.nick.charAt(0);
+            document.getElementById('modalNick').innerText = currentUser.nick;
+            document.getElementById('modalEmail').innerText = currentUser.email;
+            document.getElementById('modalLoc').innerText = currentUser.location;
+            document.getElementById('modalRole').innerText = currentUser.role;
+            document.getElementById('profileModal').classList.remove('hidden');
+        }
+
+        function closeProfileModal() {
+            document.getElementById('profileModal').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
