@@ -195,7 +195,7 @@
                 <!-- Right Users Sidebar -->
                 <div class="w-64 bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex flex-col">
                     <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Aktívni členovia</h3>
+                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">V miestnosti</h3>
                         <span id="activeUsersCount" class="text-xs bg-blue-100 text-slovakia-blue font-bold px-2 py-0.5 rounded-full">0</span>
                     </div>
                     <div id="activeUsersList" class="flex-1 overflow-y-auto space-y-2">
@@ -935,7 +935,7 @@
                 if (badge) {
                     const cnt = roomCounts[r] || 0;
                     badge.innerText = cnt;
-                    if (cnt > 0) {
+                    if (cnt > cnt * 0 || cnt > 0) {
                         badge.className = "text-xs bg-slovakia-blue text-white px-2 py-0.5 rounded-full font-bold";
                     } else {
                         badge.className = "text-xs bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full";
@@ -944,24 +944,28 @@
             });
 
             // 3. Aktualizovať počet v hlavičke aktuálnej miestnosti
+            const inThisRoomList = onlineUsers.filter(u => (u.currentRoom || "Hlavná sála") === currentRoom);
             const liveCountEl = document.getElementById('currentRoomLiveCount');
             if (liveCountEl) {
-                const inThisRoom = roomCounts[currentRoom] || 0;
-                liveCountEl.innerText = `${inThisRoom} v miestnosti`;
+                liveCountEl.innerText = `${inThisRoomList.length} v miestnosti`;
             }
 
-            // 4. Zobraziť celkový počet online členov a ich zoznam vpravo
-            countEl.innerText = onlineUsers.length;
-            list.innerHTML = onlineUsers.map(u => {
+            // 4. Zobraziť IBA používateľov, ktorí sú v tejto konkrétnej miestnosti, v pravom paneli
+            countEl.innerText = inThisRoomList.length;
+
+            if (inThisRoomList.length === 0) {
+                list.innerHTML = `<div class="p-4 text-center text-xs text-slate-400">V tejto miestnosti nie je nikto ďalší.</div>`;
+                return;
+            }
+
+            list.innerHTML = inThisRoomList.map(u => {
                 const isMe = currentUser && u.uid === currentUser.uid;
-                const userRoom = u.currentRoom || "Hlavná sála";
-                const isSameRoom = userRoom === currentRoom;
                 const genderIcon = u.gender === 'žena'
                     ? '<i class="fa-solid fa-venus text-pink-600 text-xs" title="Žena"></i>'
                     : (u.gender === 'muž' ? '<i class="fa-solid fa-mars text-sky-600 text-xs" title="Muž"></i>' : '');
                 const nickClass = u.gender === 'žena' ? 'text-pink-700 font-semibold' : 'text-slate-700 font-medium';
                 return `
-                <div class="flex items-center justify-between p-2 hover:bg-slate-50 rounded-lg group ${isSameRoom ? 'bg-blue-50/40' : ''}">
+                <div class="flex items-center justify-between p-2 hover:bg-slate-50 rounded-lg group">
                     <div class="overflow-hidden">
                         <div class="flex items-center space-x-1.5">
                             <span class="w-2.5 h-2.5 rounded-full flex-shrink-0 ${u.role === 'ADMIN' ? 'bg-red-600' : 'bg-green-500'}"></span>
@@ -970,7 +974,7 @@
                             ${u.age ? `<span class="text-[10px] text-slate-400">(${u.age})</span>` : ''}
                             ${u.role === 'ADMIN' ? '<span class="text-[9px] bg-red-100 text-red-600 font-bold px-1 rounded">ADMIN</span>' : ''}
                         </div>
-                        <div class="text-[10px] text-slate-400 pl-4 truncate">${userRoom} • ${u.location}</div>
+                        <div class="text-[10px] text-slate-400 pl-4 truncate">${u.location}</div>
                     </div>
                     <div class="flex items-center space-x-1 flex-shrink-0">
                         ${!isMe ? `<button onclick="openRpToUser('${u.uid}', '${u.nick}')" title="Poslať RP" class="text-slovakia-blue hover:text-slovakia-red text-xs p-1"><i class="fa-solid fa-envelope"></i></button>` : ''}
