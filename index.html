@@ -133,24 +133,24 @@
                 <div class="w-64 bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex flex-col">
                     <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Hlavné miestnosti</h2>
                     <div class="space-y-1 mb-6" id="mainRoomsList">
-                        <button onclick="changeRoom('Hlavná sála')" class="room-btn w-full text-left px-3 py-2 rounded-lg text-sm font-medium bg-blue-50 text-slovakia-blue flex items-center justify-between"><span><i class="fa-solid fa-fire mr-2 text-slovakia-red"></i>Hlavná sála</span><span class="text-xs bg-slovakia-blue text-white px-2 py-0.5 rounded-full" id="count-Hlavná sála">0</span></button>
-                        <button onclick="changeRoom('Tabuľa 18+')" class="room-btn w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 flex items-center justify-between"><span><i class="fa-solid fa-triangle-exclamation mr-2 text-amber-500"></i>Tabuľa 18+</span><span class="text-xs bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full" id="count-Tabuľa 18+">0</span></button>
-                        <button onclick="changeRoom('Pikošky a zábava')" class="room-btn w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 flex items-center justify-between"><span><i class="fa-solid fa-face-laugh-wink mr-2 text-blue-500"></i>Pikošky a zábava</span><span class="text-xs bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full" id="count-Pikošky a zábava">0</span></button>
+                        <button data-room="Hlavná sála" onclick="changeRoom('Hlavná sála')" class="room-btn w-full text-left px-3 py-2 rounded-lg text-sm font-medium bg-blue-50 text-slovakia-blue flex items-center justify-between"><span><i class="fa-solid fa-fire mr-2 text-slovakia-red"></i>Hlavná sála</span><span class="text-xs bg-slovakia-blue text-white px-2 py-0.5 rounded-full" id="count-Hlavná sála">0</span></button>
+                        <button data-room="Tabuľa 18+" onclick="changeRoom('Tabuľa 18+')" class="room-btn w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 flex items-center justify-between"><span><i class="fa-solid fa-triangle-exclamation mr-2 text-amber-500"></i>Tabuľa 18+</span><span class="text-xs bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full" id="count-Tabuľa 18+">0</span></button>
+                        <button data-room="Pikošky a zábava" onclick="changeRoom('Pikošky a zábava')" class="room-btn w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 flex items-center justify-between"><span><i class="fa-solid fa-face-laugh-wink mr-2 text-blue-500"></i>Pikošky a zábava</span><span class="text-xs bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full" id="count-Pikošky a zábava">0</span></button>
                     </div>
 
                     <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Slováci v zahraničí</h2>
                     <div class="space-y-1 mb-6" id="foreignRoomsList">
-                        <button onclick="changeRoom('Slováci v UK & Írsku')" class="room-btn w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 flex items-center justify-between"><span>🇬🇧 UK & Írsko</span><span class="text-xs bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full" id="count-Slováci v UK & Írsku">0</span></button>
-                        <button onclick="changeRoom('Slováci v Česku')" class="room-btn w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 flex items-center justify-between"><span>🇨🇿 V Česku</span><span class="text-xs bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full" id="count-Slováci v Česku">0</span></button>
-                        <button onclick="changeRoom('Slováci v DE & AT')" class="room-btn w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 flex items-center justify-between"><span>🇩🇪/🇦🇹 DE & AT</span><span class="text-xs bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full" id="count-Slováci v DE & AT">0</span></button>
+                        <button data-room="Slováci v UK & Írsku" onclick="changeRoom('Slováci v UK & Írsku')" class="room-btn w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 flex items-center justify-between"><span>🇬🇧 UK & Írsko</span><span class="text-xs bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full" id="count-Slováci v UK & Írsku">0</span></button>
+                        <button data-room="Slováci v Česku" onclick="changeRoom('Slováci v Česku')" class="room-btn w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 flex items-center justify-between"><span>🇨🇿 V Česku</span><span class="text-xs bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full" id="count-Slováci v Česku">0</span></button>
+                        <button data-room="Slováci v DE & AT" onclick="changeRoom('Slováci v DE & AT')" class="room-btn w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 flex items-center justify-between"><span>🇩🇪/🇦🇹 DE & AT</span><span class="text-xs bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full" id="count-Slováci v DE & AT">0</span></button>
                     </div>
 
                     <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Slovenské kraje</h2>
                     <div class="space-y-1 overflow-y-auto flex-1 max-h-48 text-sm" id="regionRoomsList">
-                        <button onclick="changeRoom('Bratislavský kraj')" class="room-btn w-full text-left px-3 py-1.5 rounded text-slate-600 hover:bg-slate-50">Bratislavský kraj</button>
-                        <button onclick="changeRoom('Západné Slovensko')" class="room-btn w-full text-left px-3 py-1.5 rounded text-slate-600 hover:bg-slate-50">Západné Slovensko</button>
-                        <button onclick="changeRoom('Stredné Slovensko')" class="room-btn w-full text-left px-3 py-1.5 rounded text-slate-600 hover:bg-slate-50">Stredné Slovensko</button>
-                        <button onclick="changeRoom('Východné Slovensko')" class="room-btn w-full text-left px-3 py-1.5 rounded text-slate-600 hover:bg-slate-50">Východné Slovensko</button>
+                        <button data-room="Bratislavský kraj" onclick="changeRoom('Bratislavský kraj')" class="room-btn w-full text-left px-3 py-1.5 rounded text-slate-600 hover:bg-slate-50 flex items-center justify-between"><span>Bratislavský kraj</span><span class="text-xs bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full" id="count-Bratislavský kraj">0</span></button>
+                        <button data-room="Západné Slovensko" onclick="changeRoom('Západné Slovensko')" class="room-btn w-full text-left px-3 py-1.5 rounded text-slate-600 hover:bg-slate-50 flex items-center justify-between"><span>Západné Slovensko</span><span class="text-xs bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full" id="count-Západné Slovensko">0</span></button>
+                        <button data-room="Stredné Slovensko" onclick="changeRoom('Stredné Slovensko')" class="room-btn w-full text-left px-3 py-1.5 rounded text-slate-600 hover:bg-slate-50 flex items-center justify-between"><span>Stredné Slovensko</span><span class="text-xs bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full" id="count-Stredné Slovensko">0</span></button>
+                        <button data-room="Východné Slovensko" onclick="changeRoom('Východné Slovensko')" class="room-btn w-full text-left px-3 py-1.5 rounded text-slate-600 hover:bg-slate-50 flex items-center justify-between"><span>Východné Slovensko</span><span class="text-xs bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full" id="count-Východné Slovensko">0</span></button>
                     </div>
                 </div>
 
@@ -158,7 +158,10 @@
                 <div class="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col overflow-hidden">
                     <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
                         <div>
-                            <h2 id="currentRoomTitle" class="text-lg font-bold text-slovakia-blue">Hlavná sála</h2>
+                            <div class="flex items-center space-x-2">
+                                <h2 id="currentRoomTitle" class="text-lg font-bold text-slovakia-blue">Hlavná sála</h2>
+                                <span id="currentRoomLiveCount" class="text-xs bg-blue-100 text-slovakia-blue font-bold px-2.5 py-0.5 rounded-full">0 v miestnosti</span>
+                            </div>
                             <p id="currentRoomDesc" class="text-xs text-slate-500">Všeobecná diskusia pre všetkých Slovákov doma aj vo svete.</p>
                         </div>
                         <div class="flex items-center space-x-2">
@@ -486,6 +489,7 @@
                     location: savedLoc,
                     gender: savedGender,
                     age: savedAge,
+                    currentRoom: currentRoom,
                     role: isAdmin ? "ADMIN" : "Člen",
                     verified: firebaseUser.emailVerified
                 };
@@ -498,6 +502,9 @@
                         location: savedLoc,
                         gender: savedGender,
                         age: savedAge,
+                        currentRoom: currentRoom,
+                        online: true,
+                        lastActiveMs: Date.now(),
                         role: currentUser.role,
                         verified: currentUser.verified,
                         lastActive: serverTimestamp()
@@ -636,7 +643,47 @@
             renderAdminPanel();
         }
 
+        let presenceHeartbeatInterval = null;
+
+        function startPresenceHeartbeat() {
+            if (presenceHeartbeatInterval) clearInterval(presenceHeartbeatInterval);
+            presenceHeartbeatInterval = setInterval(async () => {
+                if (!currentUser) return;
+                try {
+                    await updateDoc(doc(db, "users", currentUser.uid), {
+                        online: true,
+                        currentRoom: currentRoom,
+                        lastActiveMs: Date.now(),
+                        lastActive: serverTimestamp()
+                    });
+                } catch (e) {}
+            }, 25000);
+        }
+
+        window.addEventListener('beforeunload', () => {
+            if (currentUser) {
+                try {
+                    updateDoc(doc(db, "users", currentUser.uid), {
+                        online: false,
+                        lastActiveMs: 0
+                    });
+                } catch (e) {}
+            }
+        });
+
+        function getOnlineUsers() {
+            const now = Date.now();
+            // Používateľ je aktívny, ak je online !== false a bol aktívny za posledné 2 minúty (alebo je to aktuálny používateľ)
+            return usersDB.filter(u => {
+                if (currentUser && u.uid === currentUser.uid) return true;
+                if (u.online === false) return false;
+                if (u.lastActiveMs && (now - u.lastActiveMs > 120000)) return false;
+                return true;
+            });
+        }
+
         function setupRealtimeListeners() {
+            startPresenceHeartbeat();
             // 1. Počúvanie aktívnych používateľov z Firestore
             if (unsubscribeUsers) unsubscribeUsers();
             unsubscribeUsers = onSnapshot(collection(db, "users"), (snapshot) => {
@@ -703,6 +750,7 @@
         }
 
         window.handleLogout = async function() {
+            if (presenceHeartbeatInterval) clearInterval(presenceHeartbeatInterval);
             if (currentUser) {
                 try {
                     await deleteDoc(doc(db, "users", currentUser.uid));
@@ -751,9 +799,35 @@
             }
         };
 
-        window.changeRoom = function(roomName) {
+        window.changeRoom = async function(roomName) {
             currentRoom = roomName;
             document.getElementById('currentRoomTitle').innerText = roomName;
+
+            // Zvýraznenie aktívnej miestnosti vľavo
+            document.querySelectorAll('.room-btn').forEach(btn => {
+                if (btn.getAttribute('data-room') === roomName) {
+                    btn.classList.add('bg-blue-50', 'text-slovakia-blue', 'font-bold');
+                    btn.classList.remove('text-slate-600');
+                } else {
+                    btn.classList.remove('bg-blue-50', 'text-slovakia-blue', 'font-bold');
+                    btn.classList.add('text-slate-600');
+                }
+            });
+
+            if (currentUser) {
+                currentUser.currentRoom = roomName;
+                try {
+                    await updateDoc(doc(db, "users", currentUser.uid), {
+                        currentRoom: roomName,
+                        online: true,
+                        lastActiveMs: Date.now(),
+                        lastActive: serverTimestamp()
+                    });
+                } catch (e) {
+                    console.error("Chyba pri zmene miestnosti vo Firestore:", e);
+                }
+            }
+
             loadRoomMessages();
         };
 
@@ -822,28 +896,83 @@
             document.getElementById('chatInput').value = text;
         };
 
+        const ALL_ROOMS = [
+            "Hlavná sála",
+            "Tabuľa 18+",
+            "Pikošky a zábava",
+            "Slováci v UK & Írsku",
+            "Slováci v Česku",
+            "Slováci v DE & AT",
+            "Bratislavský kraj",
+            "Západné Slovensko",
+            "Stredné Slovensko",
+            "Východné Slovensko"
+        ];
+
         function renderActiveUsers() {
             const list = document.getElementById('activeUsersList');
             const countEl = document.getElementById('activeUsersCount');
             if (!list || !countEl) return;
-            countEl.innerText = usersDB.length;
-            list.innerHTML = usersDB.map(u => {
+
+            const onlineUsers = getOnlineUsers();
+
+            // 1. Vypočítať presný počet používateľov v každej miestnosti
+            const roomCounts = {};
+            ALL_ROOMS.forEach(r => roomCounts[r] = 0);
+
+            onlineUsers.forEach(u => {
+                const r = u.currentRoom || "Hlavná sála";
+                if (roomCounts[r] !== undefined) {
+                    roomCounts[r] += 1;
+                } else {
+                    roomCounts["Hlavná sála"] += 1;
+                }
+            });
+
+            // 2. Aktualizovať čísla v bublinách pri všetkých miestnostiach vľavo
+            ALL_ROOMS.forEach(r => {
+                const badge = document.getElementById('count-' + r);
+                if (badge) {
+                    const cnt = roomCounts[r] || 0;
+                    badge.innerText = cnt;
+                    if (cnt > 0) {
+                        badge.className = "text-xs bg-slovakia-blue text-white px-2 py-0.5 rounded-full font-bold";
+                    } else {
+                        badge.className = "text-xs bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full";
+                    }
+                }
+            });
+
+            // 3. Aktualizovať počet v hlavičke aktuálnej miestnosti
+            const liveCountEl = document.getElementById('currentRoomLiveCount');
+            if (liveCountEl) {
+                const inThisRoom = roomCounts[currentRoom] || 0;
+                liveCountEl.innerText = `${inThisRoom} v miestnosti`;
+            }
+
+            // 4. Zobraziť celkový počet online členov a ich zoznam vpravo
+            countEl.innerText = onlineUsers.length;
+            list.innerHTML = onlineUsers.map(u => {
                 const isMe = currentUser && u.uid === currentUser.uid;
+                const userRoom = u.currentRoom || "Hlavná sála";
+                const isSameRoom = userRoom === currentRoom;
                 const genderIcon = u.gender === 'žena'
                     ? '<i class="fa-solid fa-venus text-pink-600 text-xs" title="Žena"></i>'
                     : (u.gender === 'muž' ? '<i class="fa-solid fa-mars text-sky-600 text-xs" title="Muž"></i>' : '');
                 const nickClass = u.gender === 'žena' ? 'text-pink-700 font-semibold' : 'text-slate-700 font-medium';
                 return `
-                <div class="flex items-center justify-between p-2 hover:bg-slate-50 rounded-lg group">
-                    <div class="flex items-center space-x-1.5 overflow-hidden">
-                        <span class="w-2.5 h-2.5 rounded-full flex-shrink-0 ${u.role === 'ADMIN' ? 'bg-red-600' : 'bg-green-500'}"></span>
-                        ${genderIcon}
-                        <span class="text-sm ${nickClass} truncate">${u.nick}</span>
-                        ${u.age ? `<span class="text-[10px] text-slate-400">(${u.age})</span>` : ''}
-                        ${u.role === 'ADMIN' ? '<span class="text-[9px] bg-red-100 text-red-600 font-bold px-1 rounded">ADMIN</span>' : ''}
+                <div class="flex items-center justify-between p-2 hover:bg-slate-50 rounded-lg group ${isSameRoom ? 'bg-blue-50/40' : ''}">
+                    <div class="overflow-hidden">
+                        <div class="flex items-center space-x-1.5">
+                            <span class="w-2.5 h-2.5 rounded-full flex-shrink-0 ${u.role === 'ADMIN' ? 'bg-red-600' : 'bg-green-500'}"></span>
+                            ${genderIcon}
+                            <span class="text-sm ${nickClass} truncate">${u.nick}</span>
+                            ${u.age ? `<span class="text-[10px] text-slate-400">(${u.age})</span>` : ''}
+                            ${u.role === 'ADMIN' ? '<span class="text-[9px] bg-red-100 text-red-600 font-bold px-1 rounded">ADMIN</span>' : ''}
+                        </div>
+                        <div class="text-[10px] text-slate-400 pl-4 truncate">${userRoom} • ${u.location}</div>
                     </div>
                     <div class="flex items-center space-x-1 flex-shrink-0">
-                        <span class="text-[11px] text-slate-400">${u.location}</span>
                         ${!isMe ? `<button onclick="openRpToUser('${u.uid}', '${u.nick}')" title="Poslať RP" class="text-slovakia-blue hover:text-slovakia-red text-xs p-1"><i class="fa-solid fa-envelope"></i></button>` : ''}
                     </div>
                 </div>
