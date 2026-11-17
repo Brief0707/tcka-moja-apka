@@ -108,6 +108,7 @@
                         <button onclick="switchSection('chat')" id="navChatBtn" class="px-4 py-2 rounded-lg bg-blue-900 text-sm font-semibold transition"><i class="fa-solid fa-comments mr-2"></i>Miestnosti</button>
                         <button onclick="switchSection('stretko')" id="navStretkoBtn" class="px-4 py-2 rounded-lg hover:bg-blue-900 text-sm font-semibold transition"><i class="fa-solid fa-heart mr-2"></i>Stretko</button>
                         <button onclick="switchSection('community')" id="navCommBtn" class="px-4 py-2 rounded-lg hover:bg-blue-900 text-sm font-semibold transition"><i class="fa-solid fa-earth-europe mr-2"></i>Spolujazda & Bazár</button>
+                        <button onclick="switchSection('messages')" id="navMessagesBtn" class="px-4 py-2 rounded-lg hover:bg-blue-900 text-sm font-semibold transition relative"><i class="fa-solid fa-envelope mr-2"></i>Správy (RP)<span id="unreadRpBadge" class="ml-1.5 bg-red-600 text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold hidden">0</span></button>
                         <button onclick="switchSection('quiz')" id="navQuizBtn" class="px-4 py-2 rounded-lg hover:bg-blue-900 text-sm font-semibold transition"><i class="fa-solid fa-brain mr-2"></i>Slovenský Kvíz</button>
                         <button onclick="switchSection('admin')" id="navAdminBtn" class="px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-semibold transition hidden"><i class="fa-solid fa-shield-halved mr-2"></i>Admin Panel</button>
                     </nav>
@@ -242,6 +243,40 @@
                 </div>
             </div>
 
+            <!-- SECTION: PRIVATE MESSAGES (RP) -->
+            <div id="sectionMessages" class="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 flex overflow-hidden hidden" style="min-height: 550px;">
+                <!-- Left: Conversations / Contacts -->
+                <div class="w-72 border-r border-slate-200 bg-slate-50 flex flex-col">
+                    <div class="p-4 border-b border-slate-200 flex justify-between items-center bg-white">
+                        <h2 class="font-bold text-slovakia-blue text-base"><i class="fa-solid fa-envelope-open-text mr-2 text-slovakia-red"></i>Rýchla pošta (RP)</h2>
+                        <button onclick="openNewRpModal()" class="text-xs bg-slovakia-blue text-white px-2.5 py-1.5 rounded font-bold hover:bg-opacity-90">+ Nová</button>
+                    </div>
+                    <div id="rpThreadsList" class="flex-1 overflow-y-auto divide-y divide-slate-200">
+                        <div class="p-6 text-center text-xs text-slate-400">Zatiaľ nemáš žiadne správy.</div>
+                    </div>
+                </div>
+
+                <!-- Right: Active Chat Thread -->
+                <div class="flex-1 flex flex-col bg-white">
+                    <div id="rpChatHeader" class="px-6 py-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+                        <div>
+                            <h3 id="rpActivePartnerNick" class="font-bold text-slovakia-blue text-base">Vyber konverzáciu</h3>
+                            <p id="rpActivePartnerSub" class="text-xs text-slate-500">Klikni na člena vľavo alebo v sekcii Stretko pre odoslanie správy.</p>
+                        </div>
+                    </div>
+                    <div id="rpChatFeed" class="flex-1 p-6 overflow-y-auto space-y-3 bg-slate-50/40">
+                        <div class="h-full flex flex-col items-center justify-center text-slate-400 text-sm">
+                            <i class="fa-regular fa-paper-plane text-3xl mb-2 text-slate-300"></i>
+                            <p>Žiadna vybratá konverzácia</p>
+                        </div>
+                    </div>
+                    <form id="rpReplyForm" onsubmit="sendRpReply(event)" class="p-4 bg-white border-t border-slate-200 flex gap-2 hidden">
+                        <input type="text" id="rpReplyInput" placeholder="Napíš súkromnú odpoveď..." required class="flex-1 px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-slovakia-blue focus:outline-none text-sm">
+                        <button type="submit" class="bg-slovakia-red text-white px-6 py-3 rounded-lg font-bold hover:bg-opacity-90 transition flex items-center space-x-2"><span>Odoslať</span><i class="fa-solid fa-paper-plane"></i></button>
+                    </form>
+                </div>
+            </div>
+
             <!-- SECTION: QUIZ -->
             <div id="sectionQuiz" class="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 p-8 hidden flex-col items-center justify-center text-center">
                 <div class="max-w-lg w-full">
@@ -322,6 +357,29 @@
         </div>
     </div>
 
+    <!-- SEND RP MODAL -->
+    <div id="rpModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 relative shadow-2xl">
+            <button onclick="closeRpModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            <h3 class="text-xl font-bold text-slovakia-blue mb-1"><i class="fa-solid fa-paper-plane mr-2 text-slovakia-red"></i>Nová súkromná správa (RP)</h3>
+            <p class="text-xs text-slate-500 mb-4">Správa sa doručí priamo do schránky príjemcu.</p>
+            <form onsubmit="submitRpModal(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Príjemca</label>
+                    <select id="rpRecipientSelect" required class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-slovakia-blue focus:outline-none text-sm bg-white"></select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Text správy</label>
+                    <textarea id="rpModalText" rows="4" required placeholder="Ahoj, píšem ti ohľadom..." class="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-slovakia-blue focus:outline-none text-sm"></textarea>
+                </div>
+                <div class="flex justify-end gap-2">
+                    <button type="button" onclick="closeRpModal()" class="px-4 py-2.5 rounded-lg border border-slate-300 text-sm font-semibold text-slate-600 hover:bg-slate-50">Zrušiť</button>
+                    <button type="submit" id="rpModalSubmitBtn" class="bg-slovakia-blue text-white px-6 py-2.5 rounded-lg text-sm font-bold hover:bg-opacity-90 transition">Odoslať RP</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- FIREBASE SDK & SCRIPT LOGIKA -->
         <!-- FIREBASE SDK & SCRIPT LOGIKA -->
     <script type="module">
@@ -342,9 +400,11 @@
             onSnapshot,
             query,
             orderBy,
+            where,
             serverTimestamp,
             doc,
             setDoc,
+            updateDoc,
             deleteDoc
         } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -370,6 +430,8 @@
 
         let usersDB = [];
         let messagesDB = {};
+        let privateMessagesDB = [];
+        let activeRpPartnerUid = null;
         let postsDB = {
             spolujazda: [],
             bazar: []
@@ -377,6 +439,7 @@
 
         let unsubscribeMessages = null;
         let unsubscribeUsers = null;
+        let unsubscribePrivateMessages = null;
 
         function showAuthAlert(msg, isError = true) {
             const box = document.getElementById('authMessage');
@@ -395,7 +458,7 @@
             if (box) box.classList.add('hidden');
         }
 
-        // Sledowanie prihláseného používateľa cez Firebase Auth
+        // Sledovanie prihláseného používateľa cez Firebase Auth
         onAuthStateChanged(auth, async (firebaseUser) => {
             if (firebaseUser) {
                 const email = firebaseUser.email.toLowerCase();
@@ -418,7 +481,6 @@
                     verified: firebaseUser.emailVerified
                 };
 
-                // Uloženie/aktualizácia užívateľa v reálnej Firestore databáze
                 try {
                     await setDoc(doc(db, "users", firebaseUser.uid), {
                         uid: firebaseUser.uid,
@@ -438,12 +500,12 @@
                 currentUser = null;
                 if (unsubscribeMessages) unsubscribeMessages();
                 if (unsubscribeUsers) unsubscribeUsers();
+                if (unsubscribePrivateMessages) unsubscribePrivateMessages();
                 document.getElementById('mainApp').classList.add('hidden');
                 document.getElementById('authScreen').classList.remove('hidden');
             }
         });
 
-        // Auth prepínanie záložiek
         window.switchAuthTab = function(tab) {
             hideAuthAlert();
             const loginForm = document.getElementById('loginForm');
@@ -548,7 +610,6 @@
             renderAdminPanel();
         }
 
-        // Nastavenie reálneho času pre Firestore (Aktívni členovia a správy v miestnostiach)
         function setupRealtimeListeners() {
             // 1. Počúvanie aktívnych používateľov z Firestore
             if (unsubscribeUsers) unsubscribeUsers();
@@ -560,9 +621,36 @@
                 renderActiveUsers();
                 renderStretko();
                 renderAdminPanel();
+                renderRpThreads();
             });
 
-            // 2. Načítanie správ pre aktuálnu miestnosť
+            // 2. Počúvanie súkromných správ (RP) kde som odosielateľ alebo príjemca
+            if (unsubscribePrivateMessages) unsubscribePrivateMessages();
+            const pmQ = query(
+                collection(db, "private_messages"),
+                where("participants", "array-contains", currentUser.uid)
+            );
+            unsubscribePrivateMessages = onSnapshot(pmQ, (snapshot) => {
+                privateMessagesDB = [];
+                snapshot.forEach((docSnap) => {
+                    privateMessagesDB.push({ id: docSnap.id, ...docSnap.data() });
+                });
+                // Zoradiť podľa času (client-side aby nebol potrebný zložený Firestore index)
+                privateMessagesDB.sort((a, b) => {
+                    const ta = a.createdAtMs || 0;
+                    const tb = b.createdAtMs || 0;
+                    return ta - tb;
+                });
+                updateUnreadRpBadge();
+                renderRpThreads();
+                if (activeRpPartnerUid) {
+                    renderRpConversation(activeRpPartnerUid);
+                }
+            }, (err) => {
+                console.error("Chyba pri načítaní súkromných správ:", err);
+            });
+
+            // 3. Načítanie správ pre aktuálnu verejnú miestnosť
             loadRoomMessages();
         }
 
@@ -578,8 +666,6 @@
                 messagesDB[currentRoom] = msgs;
                 renderChatMessages();
             }, (error) => {
-                console.error("Chyba pri načítatí správ (skontroluj Firestore Indexy ak sú vyžadované):", error);
-                // Fallback bez triedenia ak index ešte neexistuje
                 const fallbackQ = collection(db, "rooms", currentRoom, "messages");
                 onSnapshot(fallbackQ, (snap) => {
                     const fallbackMsgs = [];
@@ -607,14 +693,36 @@
             }
 
             currentSection = section;
-            ['chat', 'stretko', 'community', 'quiz', 'admin'].forEach(s => {
+            ['chat', 'stretko', 'community', 'messages', 'quiz', 'admin'].forEach(s => {
                 const el = document.getElementById('section' + s.charAt(0).toUpperCase() + s.slice(1));
                 if (el) el.classList.add('hidden');
             });
 
-            document.getElementById('section' + section.charAt(0).toUpperCase() + section.slice(1)).classList.remove('hidden');
+            const targetEl = document.getElementById('section' + section.charAt(0).toUpperCase() + section.slice(1));
+            if (targetEl) targetEl.classList.remove('hidden');
+
+            // Zvýraznenie aktívnej záložky v navigácii
+            ['Chat', 'Stretko', 'Comm', 'Messages', 'Quiz'].forEach(btnKey => {
+                const btn = document.getElementById('nav' + btnKey + 'Btn');
+                if (btn) {
+                    btn.classList.remove('bg-blue-900');
+                    btn.classList.add('hover:bg-blue-900');
+                }
+            });
+            const mapBtn = { chat: 'navChatBtn', stretko: 'navStretkoBtn', community: 'navCommBtn', messages: 'navMessagesBtn', quiz: 'navQuizBtn' };
+            if (mapBtn[section]) {
+                const activeBtn = document.getElementById(mapBtn[section]);
+                if (activeBtn) {
+                    activeBtn.classList.add('bg-blue-900');
+                    activeBtn.classList.remove('hover:bg-blue-900');
+                }
+            }
 
             if (section === 'quiz') loadQuizQuestion();
+            if (section === 'messages') {
+                renderRpThreads();
+                if (activeRpPartnerUid) renderRpConversation(activeRpPartnerUid);
+            }
         };
 
         window.changeRoom = function(roomName) {
@@ -676,16 +784,21 @@
             const countEl = document.getElementById('activeUsersCount');
             if (!list || !countEl) return;
             countEl.innerText = usersDB.length;
-            list.innerHTML = usersDB.map(u => `
-                <div class="flex items-center justify-between p-2 hover:bg-slate-50 rounded-lg">
+            list.innerHTML = usersDB.map(u => {
+                const isMe = currentUser && u.uid === currentUser.uid;
+                return `
+                <div class="flex items-center justify-between p-2 hover:bg-slate-50 rounded-lg group">
                     <div class="flex items-center space-x-2">
                         <span class="w-2.5 h-2.5 rounded-full ${u.role === 'ADMIN' ? 'bg-red-600' : 'bg-green-500'}"></span>
                         <span class="text-sm font-medium text-slate-700">${u.nick}</span>
                         ${u.role === 'ADMIN' ? '<span class="text-[9px] bg-red-100 text-red-600 font-bold px-1 rounded">ADMIN</span>' : ''}
                     </div>
-                    <span class="text-xs text-slate-400">${u.location}</span>
+                    <div class="flex items-center space-x-1.5">
+                        <span class="text-xs text-slate-400">${u.location}</span>
+                        ${!isMe ? `<button onclick="openRpToUser('${u.uid}', '${u.nick}')" title="Poslať RP" class="text-slovakia-blue hover:text-slovakia-red text-xs p-1"><i class="fa-solid fa-envelope"></i></button>` : ''}
+                    </div>
                 </div>
-            `).join('');
+            `}).join('');
         }
 
         window.renderStretko = function() {
@@ -701,19 +814,267 @@
                 filtered = usersDB.filter(u => u.location === filter);
             }
 
-            grid.innerHTML = filtered.map(u => `
+            grid.innerHTML = filtered.map(u => {
+                const isMe = currentUser && u.uid === currentUser.uid;
+                return `
                 <div class="border rounded-xl p-4 bg-slate-50 flex flex-col justify-between">
                     <div>
                         <div class="flex items-center justify-between mb-2">
-                            <span class="font-bold text-slovakia-blue text-lg">${u.nick}</span>
+                            <span class="font-bold text-slovakia-blue text-lg">${u.nick} ${u.role === 'ADMIN' ? '<span class="text-[10px] bg-red-600 text-white px-1.5 py-0.5 rounded ml-1">ADMIN</span>' : ''}</span>
                             <span class="text-xs bg-blue-100 text-slovakia-blue px-2 py-0.5 rounded font-semibold">${u.location}</span>
                         </div>
-                        <p class="text-xs text-slate-500 mb-4">Hľadá nových priateľov a pokec v komunite.</p>
+                        <p class="text-xs text-slate-500 mb-4">${isMe ? 'Toto je tvoj verejný profil v komunite.' : 'Hľadá nových priateľov a pokec v komunite.'}</p>
                     </div>
-                    <button onclick="alert('Odoslaná súkromná správa používateľovi ${u.nick}')" class="w-full bg-slovakia-blue text-white py-2 rounded-lg text-xs font-bold hover:bg-opacity-90 transition">Poslať RP správu</button>
+                    ${!isMe 
+                        ? `<button onclick="openRpToUser('${u.uid}', '${u.nick}')" class="w-full bg-slovakia-blue text-white py-2 rounded-lg text-xs font-bold hover:bg-opacity-90 transition"><i class="fa-solid fa-paper-plane mr-1.5"></i>Poslať RP správu</button>`
+                        : `<div class="w-full text-center py-2 rounded-lg text-xs font-semibold text-slate-400 bg-slate-200/70">Tvoj profil</div>`
+                    }
                 </div>
-            `).join('');
+            `}).join('');
         };
+
+        // ================= SÚKROMNÉ SPRÁVY (RP) FUNKCIE =================
+        window.openRpToUser = function(targetUid, targetNick) {
+            if (!currentUser) return;
+            if (targetUid === currentUser.uid) return;
+            
+            // Ak už s používateľom máme konverzáciu, môžeme rovno otvoriť okno alebo modal
+            openNewRpModal(targetUid, targetNick);
+        };
+
+        window.openNewRpModal = function(preselectUid = null, preselectNick = null) {
+            if (!currentUser) return;
+            const select = document.getElementById('rpRecipientSelect');
+            const otherUsers = usersDB.filter(u => u.uid !== currentUser.uid);
+
+            let optionsHtml = otherUsers.map(u => 
+                `<option value="${u.uid}" data-nick="${u.nick}" ${u.uid === preselectUid ? 'selected' : ''}>${u.nick} (${u.location})</option>`
+            ).join('');
+
+            // Ak bol používateľ vybraný priamo, ale medzitým odišiel z online zoznamu, pridáme ho ako voľbu
+            if (preselectUid && !otherUsers.some(u => u.uid === preselectUid)) {
+                optionsHtml = `<option value="${preselectUid}" data-nick="${preselectNick || 'Člen'}" selected>${preselectNick || 'Člen'}</option>` + optionsHtml;
+            }
+
+            if (!optionsHtml) {
+                alert("Momentálne nie sú online žiadni ďalší členovia, ktorým by si mohol poslať správu.");
+                return;
+            }
+
+            select.innerHTML = optionsHtml;
+            document.getElementById('rpModalText').value = '';
+            document.getElementById('rpModal').classList.remove('hidden');
+        };
+
+        window.closeRpModal = function() {
+            document.getElementById('rpModal').classList.add('hidden');
+        };
+
+        window.submitRpModal = async function(e) {
+            e.preventDefault();
+            if (!currentUser) return;
+            const select = document.getElementById('rpRecipientSelect');
+            const recipientUid = select.value;
+            const selectedOption = select.options[select.selectedIndex];
+            const recipientNick = selectedOption ? selectedOption.getAttribute('data-nick') : 'Člen';
+            const text = document.getElementById('rpModalText').value.trim();
+            const btn = document.getElementById('rpModalSubmitBtn');
+
+            if (!recipientUid || !text) return;
+
+            btn.disabled = true;
+            btn.innerText = "Odosielam...";
+
+            try {
+                const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                await addDoc(collection(db, "private_messages"), {
+                    fromUid: currentUser.uid,
+                    fromNick: currentUser.nick,
+                    toUid: recipientUid,
+                    toNick: recipientNick,
+                    participants: [currentUser.uid, recipientUid],
+                    text: text,
+                    time: time,
+                    read: false,
+                    createdAtMs: Date.now(),
+                    timestamp: serverTimestamp()
+                });
+
+                closeRpModal();
+                activeRpPartnerUid = recipientUid;
+                switchSection('messages');
+                renderRpConversation(recipientUid);
+            } catch (err) {
+                console.error("Chyba pri odosielaní RP:", err);
+                alert("Nepodarilo sa odoslať súkromnú správu. Skontroluj pripojenie k Firestore.");
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Odoslať RP";
+            }
+        };
+
+        function updateUnreadRpBadge() {
+            if (!currentUser) return;
+            const unreadCount = privateMessagesDB.filter(m => m.toUid === currentUser.uid && !m.read).length;
+            const badge = document.getElementById('unreadRpBadge');
+            if (!badge) return;
+            if (unreadCount > 0) {
+                badge.innerText = unreadCount;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+
+        function renderRpThreads() {
+            const listEl = document.getElementById('rpThreadsList');
+            if (!listEl || !currentUser) return;
+
+            // Zoskupiť správy podľa konverzačného partnera
+            const threadsMap = {};
+            privateMessagesDB.forEach(m => {
+                const partnerUid = m.fromUid === currentUser.uid ? m.toUid : m.fromUid;
+                const partnerNick = m.fromUid === currentUser.uid ? m.toNick : m.fromNick;
+                if (!threadsMap[partnerUid]) {
+                    threadsMap[partnerUid] = {
+                        partnerUid,
+                        partnerNick: partnerNick || 'Člen',
+                        lastMessage: m.text,
+                        lastTime: m.time || '',
+                        lastMs: m.createdAtMs || 0,
+                        unread: 0
+                    };
+                }
+                if ((m.createdAtMs || 0) >= threadsMap[partnerUid].lastMs) {
+                    threadsMap[partnerUid].lastMessage = m.text;
+                    threadsMap[partnerUid].lastTime = m.time || '';
+                    threadsMap[partnerUid].lastMs = m.createdAtMs || 0;
+                    if (partnerNick) threadsMap[partnerUid].partnerNick = partnerNick;
+                }
+                if (m.toUid === currentUser.uid && !m.read) {
+                    threadsMap[partnerUid].unread += 1;
+                }
+            });
+
+            const threads = Object.values(threadsMap).sort((a, b) => b.lastMs - a.lastMs);
+
+            if (threads.length === 0) {
+                listEl.innerHTML = `<div class="p-6 text-center text-xs text-slate-400">Zatiaľ nemáš žiadne prijaté ani odoslané RP správy.<br><br>Klikni na <b>+ Nová</b> alebo na člena v sekcii <b>Stretko</b>.</div>`;
+                return;
+            }
+
+            listEl.innerHTML = threads.map(t => {
+                const isSelected = t.partnerUid === activeRpPartnerUid;
+                return `
+                <button onclick="selectRpThread('${t.partnerUid}')" class="w-full text-left p-3.5 transition flex items-start justify-between ${isSelected ? 'bg-blue-50 border-l-4 border-slovakia-blue' : 'hover:bg-white'}">
+                    <div class="flex items-center space-x-2.5 overflow-hidden">
+                        <div class="w-9 h-9 rounded-full bg-slovakia-blue text-white flex-shrink-0 flex items-center justify-center font-bold text-xs">${t.partnerNick.charAt(0).toUpperCase()}</div>
+                        <div class="overflow-hidden">
+                            <div class="font-bold text-sm text-slovakia-blue truncate">${t.partnerNick}</div>
+                            <p class="text-xs text-slate-500 truncate">${t.lastMessage}</p>
+                        </div>
+                    </div>
+                    <div class="flex flex-col items-end ml-2 flex-shrink-0">
+                        <span class="text-[10px] text-slate-400">${t.lastTime}</span>
+                        ${t.unread > 0 ? `<span class="mt-1 bg-red-600 text-white text-[10px] px-1.5 py-0.2 rounded-full font-bold">${t.unread}</span>` : ''}
+                    </div>
+                </button>
+            `}).join('');
+        }
+
+        window.selectRpThread = function(partnerUid) {
+            activeRpPartnerUid = partnerUid;
+            renderRpThreads();
+            renderRpConversation(partnerUid);
+        };
+
+        async function renderRpConversation(partnerUid) {
+            if (!currentUser) return;
+            const feedEl = document.getElementById('rpChatFeed');
+            const titleEl = document.getElementById('rpActivePartnerNick');
+            const subEl = document.getElementById('rpActivePartnerSub');
+            const formEl = document.getElementById('rpReplyForm');
+
+            const convo = privateMessagesDB.filter(m => 
+                (m.fromUid === currentUser.uid && m.toUid === partnerUid) ||
+                (m.fromUid === partnerUid && m.toUid === currentUser.uid)
+            );
+
+            // Zistiť prezývku partnera
+            let partnerNick = 'Člen';
+            const onlineUser = usersDB.find(u => u.uid === partnerUid);
+            if (onlineUser) {
+                partnerNick = onlineUser.nick;
+            } else if (convo.length > 0) {
+                const sample = convo[convo.length - 1];
+                partnerNick = sample.fromUid === partnerUid ? sample.fromNick : sample.toNick;
+            }
+
+            titleEl.innerText = `Konverzácia s: ${partnerNick}`;
+            subEl.innerText = onlineUser ? `Online • ${onlineUser.location}` : 'Súkromná pošta (RP)';
+            formEl.classList.remove('hidden');
+
+            // Označiť neprečítané správy od tohto partnera ako prečítané
+            for (const m of convo) {
+                if (m.toUid === currentUser.uid && !m.read && m.id) {
+                    try {
+                        await updateDoc(doc(db, "private_messages", m.id), { read: true });
+                    } catch (e) {}
+                }
+            }
+
+            if (convo.length === 0) {
+                feedEl.innerHTML = `<div class="text-center text-xs text-slate-400 py-8">Začni konverzáciu s používateľom ${partnerNick}.</div>`;
+                return;
+            }
+
+            feedEl.innerHTML = convo.map(m => {
+                const isMine = m.fromUid === currentUser.uid;
+                return `
+                <div class="flex ${isMine ? 'justify-end' : 'justify-start'}">
+                    <div class="max-w-md rounded-2xl px-4 py-2.5 shadow-sm ${isMine ? 'bg-slovakia-blue text-white rounded-br-none' : 'bg-white border border-slate-200 text-slate-800 rounded-bl-none'}">
+                        <div class="flex items-center justify-between gap-4 mb-1">
+                            <span class="text-[11px] font-bold ${isMine ? 'text-blue-200' : 'text-slovakia-blue'}">${isMine ? 'Ja' : m.fromNick}</span>
+                            <span class="text-[10px] ${isMine ? 'text-blue-200' : 'text-slate-400'}">${m.time || ''}</span>
+                        </div>
+                        <p class="text-sm whitespace-pre-wrap">${m.text}</p>
+                    </div>
+                </div>
+            `}).join('');
+            feedEl.scrollTop = feedEl.scrollHeight;
+        }
+
+        window.sendRpReply = async function(e) {
+            e.preventDefault();
+            if (!currentUser || !activeRpPartnerUid) return;
+            const input = document.getElementById('rpReplyInput');
+            const text = input.value.trim();
+            if (!text) return;
+
+            const onlineUser = usersDB.find(u => u.uid === activeRpPartnerUid);
+            const partnerNick = onlineUser ? onlineUser.nick : (document.getElementById('rpActivePartnerNick').innerText.replace('Konverzácia s: ', '') || 'Člen');
+            const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            input.value = '';
+            try {
+                await addDoc(collection(db, "private_messages"), {
+                    fromUid: currentUser.uid,
+                    fromNick: currentUser.nick,
+                    toUid: activeRpPartnerUid,
+                    toNick: partnerNick,
+                    participants: [currentUser.uid, activeRpPartnerUid],
+                    text: text,
+                    time: time,
+                    read: false,
+                    createdAtMs: Date.now(),
+                    timestamp: serverTimestamp()
+                });
+            } catch (err) {
+                console.error("Chyba pri odoslaní odpovede:", err);
+                alert("Nepodarilo sa odoslať správu.");
+            }
+        };
+        // ================= KONIEC RP FUNKCIÍ =================
 
         function renderCommunityPosts() {
             const spList = document.getElementById('spolujazdaList');
