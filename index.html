@@ -210,6 +210,8 @@
                     </div>
                     <select id="stretkoFilter" onchange="renderStretko()" class="px-3 py-2 border rounded-lg text-sm bg-white font-medium">
                         <option value="všetci">Všetci členovia</option>
+                        <option value="žena">♀ Iba ženy</option>
+                        <option value="muž">♂ Iba muži</option>
                         <option value="zahraničie">Slováci v zahraničí (UK, CZ, DE)</option>
                         <option value="Bratislavský">Bratislavský kraj</option>
                     </select>
@@ -323,6 +325,7 @@
                         <thead>
                             <tr class="bg-slate-100 text-xs font-bold text-slate-600 uppercase border-b">
                                 <th class="p-3">Prezývka</th>
+                                <th class="p-3">Pohlavie / Vek</th>
                                 <th class="p-3">E-mail</th>
                                 <th class="p-3">Lokalita</th>
                                 <th class="p-3">Stav</th>
@@ -349,6 +352,8 @@
                 <p id="modalEmail" class="text-xs text-slate-500">email@adresa.sk</p>
             </div>
             <div class="space-y-3 text-sm bg-slate-50 p-4 rounded-xl mb-6">
+                <div class="flex justify-between"><span class="text-slate-500">Pohlavie:</span> <span id="modalGender" class="font-semibold">—</span></div>
+                <div class="flex justify-between"><span class="text-slate-500">Vek:</span> <span id="modalAge" class="font-semibold">—</span></div>
                 <div class="flex justify-between"><span class="text-slate-500">Lokalita:</span> <span id="modalLoc" class="font-semibold">Bratislavský</span></div>
                 <div class="flex justify-between"><span class="text-slate-500">Oprávnenie:</span> <span id="modalRole" class="font-semibold text-slovakia-red">Člen</span></div>
                 <div class="flex justify-between"><span class="text-slate-500">Stav e-mailu:</span> <span id="modalVerified" class="font-semibold text-green-600">Overený</span></div>
@@ -471,12 +476,16 @@
                 }
 
                 const savedLoc = localStorage.getItem('tcka_loc_' + firebaseUser.uid) || "Bratislavský";
+                const savedGender = localStorage.getItem('tcka_gender_' + firebaseUser.uid) || (isAdmin ? "muž" : "neuvedené");
+                const savedAge = localStorage.getItem('tcka_age_' + firebaseUser.uid) || "";
                 const nickName = isAdmin ? "Admin" : (firebaseUser.displayName || email.split('@')[0]);
                 currentUser = {
                     uid: firebaseUser.uid,
                     nick: nickName,
                     email: email,
                     location: savedLoc,
+                    gender: savedGender,
+                    age: savedAge,
                     role: isAdmin ? "ADMIN" : "Člen",
                     verified: firebaseUser.emailVerified
                 };
@@ -487,10 +496,12 @@
                         nick: currentUser.nick,
                         email: email,
                         location: savedLoc,
+                        gender: savedGender,
+                        age: savedAge,
                         role: currentUser.role,
                         verified: currentUser.verified,
                         lastActive: serverTimestamp()
-                    });
+                    }, { merge: true });
                 } catch (err) {
                     console.error("Chyba pri zápise používateľa do Firestore:", err);
                 }
@@ -559,6 +570,8 @@
             const email = document.getElementById('regEmail').value.trim();
             const password = document.getElementById('regPassword').value;
             const location = document.getElementById('regLocation').value;
+            const gender = document.getElementById('regGender').value;
+            const age = document.getElementById('regAge').value;
             const btn = document.getElementById('regSubmitBtn');
 
             btn.disabled = true;
@@ -568,6 +581,19 @@
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                 await updateProfile(userCredential.user, { displayName: nick });
                 localStorage.setItem('tcka_loc_' + userCredential.user.uid, location);
+                localStorage.setItem('tcka_gender_' + userCredential.user.uid, gender);
+                localStorage.setItem('tcka_age_' + userCredential.user.uid, age);
+                await setDoc(doc(db, "users", userCredential.user.uid), {
+                    uid: userCredential.user.uid,
+                    nick: nick,
+                    email: email.toLowerCase(),
+                    location: location,
+                    gender: gender,
+                    age: age,
+                    role: email.toLowerCase() === ADMIN_EMAIL ? "ADMIN" : "Člen",
+                    verified: false,
+                    lastActive: serverTimestamp()
+                });
                 await sendEmailVerification(userCredential.user);
 
                 if (email.toLowerCase() !== ADMIN_EMAIL) {
@@ -731,23 +757,38 @@
             loadRoomMessages();
         };
 
+        function getGenderBadge(gender, age = '') {
+            const ageStr = age ? `, ${age}` : '';
+            if (gender === 'žena') {
+                return `<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-pink-100 text-pink-700 border border-pink-200"><i class="fa-solid fa-venus mr-1"></i>Žena${ageStr}</span>`;
+            }
+            if (gender === 'muž') {
+                return `<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-sky-100 text-sky-700 border border-sky-200"><i class="fa-solid fa-mars mr-1"></i>Muž${ageStr}</span>`;
+            }
+            return '';
+        }
+
         function renderChatMessages() {
             const container = document.getElementById('chatMessages');
             if (!container) return;
             const msgs = messagesDB[currentRoom] || [];
-            container.innerHTML = msgs.map(m => `
+            container.innerHTML = msgs.map(m => {
+                const avatarBg = m.gender === 'žena' ? 'bg-pink-600' : 'bg-slovakia-blue';
+                const nickColor = m.gender === 'žena' ? 'text-pink-700' : 'text-slovakia-blue';
+                return `
                 <div class="flex items-start space-x-3">
-                    <div class="w-8 h-8 rounded-full bg-slovakia-blue text-white flex items-center justify-center font-bold text-xs">${(m.nick || 'A').charAt(0)}</div>
+                    <div class="w-8 h-8 rounded-full ${avatarBg} text-white flex items-center justify-center font-bold text-xs">${(m.nick || 'A').charAt(0).toUpperCase()}</div>
                     <div>
-                        <div class="flex items-center space-x-2">
-                            <span class="font-bold text-sm text-slovakia-blue">${m.nick}</span>
+                        <div class="flex items-center flex-wrap gap-1.5">
+                            <span class="font-bold text-sm ${nickColor}">${m.nick}</span>
+                            ${getGenderBadge(m.gender, m.age)}
                             ${m.role === 'ADMIN' ? '<span class="bg-red-600 text-white text-[10px] px-1.5 py-0.2 rounded font-bold">ADMIN</span>' : ''}
                             <span class="text-xs text-slate-400">${m.time || ''}</span>
                         </div>
                         <p class="text-sm text-slate-700 mt-0.5">${m.text}</p>
                     </div>
                 </div>
-            `).join('');
+            `}).join('');
             container.scrollTop = container.scrollHeight;
         }
 
@@ -763,6 +804,8 @@
             try {
                 await addDoc(collection(db, "rooms", currentRoom, "messages"), {
                     nick: currentUser.nick,
+                    gender: currentUser.gender || 'neuvedené',
+                    age: currentUser.age || '',
                     text: text,
                     time: time,
                     role: currentUser.email === ADMIN_EMAIL ? 'ADMIN' : 'Člen',
@@ -786,15 +829,21 @@
             countEl.innerText = usersDB.length;
             list.innerHTML = usersDB.map(u => {
                 const isMe = currentUser && u.uid === currentUser.uid;
+                const genderIcon = u.gender === 'žena'
+                    ? '<i class="fa-solid fa-venus text-pink-600 text-xs" title="Žena"></i>'
+                    : (u.gender === 'muž' ? '<i class="fa-solid fa-mars text-sky-600 text-xs" title="Muž"></i>' : '');
+                const nickClass = u.gender === 'žena' ? 'text-pink-700 font-semibold' : 'text-slate-700 font-medium';
                 return `
                 <div class="flex items-center justify-between p-2 hover:bg-slate-50 rounded-lg group">
-                    <div class="flex items-center space-x-2">
-                        <span class="w-2.5 h-2.5 rounded-full ${u.role === 'ADMIN' ? 'bg-red-600' : 'bg-green-500'}"></span>
-                        <span class="text-sm font-medium text-slate-700">${u.nick}</span>
+                    <div class="flex items-center space-x-1.5 overflow-hidden">
+                        <span class="w-2.5 h-2.5 rounded-full flex-shrink-0 ${u.role === 'ADMIN' ? 'bg-red-600' : 'bg-green-500'}"></span>
+                        ${genderIcon}
+                        <span class="text-sm ${nickClass} truncate">${u.nick}</span>
+                        ${u.age ? `<span class="text-[10px] text-slate-400">(${u.age})</span>` : ''}
                         ${u.role === 'ADMIN' ? '<span class="text-[9px] bg-red-100 text-red-600 font-bold px-1 rounded">ADMIN</span>' : ''}
                     </div>
-                    <div class="flex items-center space-x-1.5">
-                        <span class="text-xs text-slate-400">${u.location}</span>
+                    <div class="flex items-center space-x-1 flex-shrink-0">
+                        <span class="text-[11px] text-slate-400">${u.location}</span>
                         ${!isMe ? `<button onclick="openRpToUser('${u.uid}', '${u.nick}')" title="Poslať RP" class="text-slovakia-blue hover:text-slovakia-red text-xs p-1"><i class="fa-solid fa-envelope"></i></button>` : ''}
                     </div>
                 </div>
@@ -808,7 +857,9 @@
             const filter = filterEl.value;
             let filtered = usersDB;
 
-            if (filter === 'zahraničie') {
+            if (filter === 'žena' || filter === 'muž') {
+                filtered = usersDB.filter(u => u.gender === filter);
+            } else if (filter === 'zahraničie') {
                 filtered = usersDB.filter(u => (u.location || '').includes('UK') || (u.location || '').includes('Česká') || (u.location || '').includes('Nemecko'));
             } else if (filter !== 'všetci') {
                 filtered = usersDB.filter(u => u.location === filter);
@@ -816,13 +867,16 @@
 
             grid.innerHTML = filtered.map(u => {
                 const isMe = currentUser && u.uid === currentUser.uid;
+                const cardBorder = u.gender === 'žena' ? 'border-pink-200 bg-pink-50/40' : 'border-slate-200 bg-slate-50';
+                const nameColor = u.gender === 'žena' ? 'text-pink-700' : 'text-slovakia-blue';
                 return `
-                <div class="border rounded-xl p-4 bg-slate-50 flex flex-col justify-between">
+                <div class="border ${cardBorder} rounded-xl p-4 flex flex-col justify-between">
                     <div>
-                        <div class="flex items-center justify-between mb-2">
-                            <span class="font-bold text-slovakia-blue text-lg">${u.nick} ${u.role === 'ADMIN' ? '<span class="text-[10px] bg-red-600 text-white px-1.5 py-0.5 rounded ml-1">ADMIN</span>' : ''}</span>
+                        <div class="flex items-center justify-between mb-1.5">
+                            <span class="font-bold ${nameColor} text-lg">${u.nick} ${u.role === 'ADMIN' ? '<span class="text-[10px] bg-red-600 text-white px-1.5 py-0.5 rounded ml-1">ADMIN</span>' : ''}</span>
                             <span class="text-xs bg-blue-100 text-slovakia-blue px-2 py-0.5 rounded font-semibold">${u.location}</span>
                         </div>
+                        <div class="mb-3">${getGenderBadge(u.gender, u.age)}</div>
                         <p class="text-xs text-slate-500 mb-4">${isMe ? 'Toto je tvoj verejný profil v komunite.' : 'Hľadá nových priateľov a pokec v komunite.'}</p>
                     </div>
                     ${!isMe 
@@ -1159,6 +1213,7 @@
             tbody.innerHTML = usersDB.map(u => `
                 <tr class="border-b hover:bg-slate-50">
                     <td class="p-3 font-bold text-slovakia-blue">${u.nick}</td>
+                    <td class="p-3">${getGenderBadge(u.gender, u.age) || '<span class="text-xs text-slate-400">—</span>'}</td>
                     <td class="p-3 text-slate-500">${u.email}</td>
                     <td class="p-3">${u.location}</td>
                     <td class="p-3"><span class="px-2 py-0.5 rounded text-xs font-bold ${u.role === 'ADMIN' ? 'bg-red-100 text-slovakia-red' : 'bg-green-100 text-green-700'}">${u.role}</span></td>
@@ -1176,9 +1231,12 @@
 
         window.openProfileModal = function() {
             if (!currentUser) return;
-            document.getElementById('modalAvatar').innerText = currentUser.nick.charAt(0);
+            document.getElementById('modalAvatar').innerText = currentUser.nick.charAt(0).toUpperCase();
             document.getElementById('modalNick').innerText = currentUser.nick;
             document.getElementById('modalEmail').innerText = currentUser.email;
+            const genderLabel = currentUser.gender === 'žena' ? '♀ Žena' : (currentUser.gender === 'muž' ? '♂ Muž' : 'Neuvedené');
+            document.getElementById('modalGender').innerText = genderLabel;
+            document.getElementById('modalAge').innerText = currentUser.age ? currentUser.age + ' rokov' : 'Neuvedený';
             document.getElementById('modalLoc').innerText = currentUser.location;
             document.getElementById('modalRole').innerText = currentUser.role;
             document.getElementById('modalVerified').innerText = currentUser.verified ? "Overený" : "Admin účet";
