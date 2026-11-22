@@ -20,7 +20,7 @@
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body class="bg-slate-100 text-slate-800 font-sans antialiased min-h-screen flex flex-col">
+<body class="bg-slate-100 text-slate-800 font-sans antialiased h-screen overflow-hidden flex flex-col">
 
     <!-- AUTH SCREEN (Login / Register) -->
     <div id="authScreen" class="fixed inset-0 bg-slovakia-blue z-50 flex items-center justify-center p-4">
@@ -98,7 +98,7 @@
     </div>
 
     <!-- MAIN APP WRAPPER -->
-    <div id="mainApp" class="flex-1 flex flex-col hidden">
+    <div id="mainApp" class="flex-1 min-h-0 flex flex-col overflow-hidden hidden">
         <!-- TOP NAVIGATION -->
         <header class="bg-slovakia-blue text-white shadow-md">
             <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
@@ -125,12 +125,12 @@
         </header>
 
         <!-- CONTENT AREA -->
-        <main class="flex-1 max-w-7xl w-full mx-auto p-4 flex gap-4">
+        <main class="flex-1 min-h-0 max-w-7xl w-full mx-auto p-4 flex gap-4 overflow-hidden">
             
             <!-- SECTION: CHAT (Default) -->
-            <div id="sectionChat" class="flex-1 flex gap-4">
+            <div id="sectionChat" class="flex-1 min-h-0 flex gap-4 overflow-hidden">
                 <!-- Left Rooms Menu -->
-                <div class="w-64 bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex flex-col">
+                <div class="w-64 bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex flex-col overflow-y-auto flex-shrink-0">
                     <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Hlavné miestnosti</h2>
                     <div class="space-y-1 mb-6" id="mainRoomsList">
                         <button data-room="Hlavná sála" onclick="changeRoom('Hlavná sála')" class="room-btn w-full text-left px-3 py-2 rounded-lg text-sm font-medium bg-blue-50 text-slovakia-blue flex items-center justify-between"><span><i class="fa-solid fa-fire mr-2 text-slovakia-red"></i>Hlavná sála</span><span class="text-xs bg-slovakia-blue text-white px-2 py-0.5 rounded-full" id="count-Hlavná sála">0</span></button>
@@ -155,7 +155,7 @@
                 </div>
 
                 <!-- Chat Box Center -->
-                <div class="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col overflow-hidden">
+                <div class="flex-1 min-w-0 min-h-0 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col overflow-hidden">
                     <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
                         <div>
                             <div class="flex items-center space-x-2">
@@ -171,7 +171,7 @@
                     </div>
 
                     <!-- Messages Feed -->
-                    <div id="chatMessages" class="flex-1 p-6 overflow-y-auto space-y-4">
+                    <div id="chatMessages" class="flex-1 min-h-0 p-4 md:p-6 overflow-y-auto space-y-3 scroll-smooth">
                         <!-- Dynamické správy -->
                     </div>
 
@@ -193,7 +193,7 @@
                 </div>
 
                 <!-- Right Users Sidebar -->
-                <div class="w-64 bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex flex-col">
+                <div class="w-64 bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex flex-col overflow-y-auto flex-shrink-0">
                     <div class="flex items-center justify-between mb-4">
                         <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">V miestnosti</h3>
                         <span id="activeUsersCount" class="text-xs bg-blue-100 text-slovakia-blue font-bold px-2 py-0.5 rounded-full">0</span>
@@ -762,7 +762,8 @@
 
         function loadRoomMessages() {
             if (unsubscribeMessages) unsubscribeMessages();
-            
+            shouldForceScrollToBottom = true;
+
             const q = query(collection(db, "rooms", currentRoom, "messages"), orderBy("timestamp", "asc"));
             unsubscribeMessages = onSnapshot(q, (snapshot) => {
                 const msgs = [];
@@ -875,28 +876,54 @@
             return '';
         }
 
-        function renderChatMessages() {
+        let shouldForceScrollToBottom = true;
+
+        function scrollChatToBottom(instant = false) {
             const container = document.getElementById('chatMessages');
             if (!container) return;
+            requestAnimationFrame(() => {
+                if (instant) {
+                    const prevBehavior = container.style.scrollBehavior;
+                    container.style.scrollBehavior = 'auto';
+                    container.scrollTop = container.scrollHeight;
+                    container.style.scrollBehavior = prevBehavior;
+                } else {
+                    container.scrollTop = container.scrollHeight;
+                }
+            });
+        }
+
+        function isUserNearBottom(container) {
+            return (container.scrollHeight - container.scrollTop - container.clientHeight) < 140;
+        }
+
+        function renderChatMessages(forceBottom = false) {
+            const container = document.getElementById('chatMessages');
+            if (!container) return;
+            const wasNearBottom = isUserNearBottom(container);
             const msgs = messagesDB[currentRoom] || [];
             container.innerHTML = msgs.map(m => {
                 const avatarBg = m.gender === 'žena' ? 'bg-pink-600' : 'bg-slovakia-blue';
                 const nickColor = m.gender === 'žena' ? 'text-pink-700' : 'text-slovakia-blue';
                 return `
                 <div class="flex items-start space-x-3">
-                    <div class="w-8 h-8 rounded-full ${avatarBg} text-white flex items-center justify-center font-bold text-xs">${(m.nick || 'A').charAt(0).toUpperCase()}</div>
-                    <div>
+                    <div class="w-8 h-8 rounded-full ${avatarBg} text-white flex items-center justify-center font-bold text-xs flex-shrink-0">${(m.nick || 'A').charAt(0).toUpperCase()}</div>
+                    <div class="min-w-0 flex-1">
                         <div class="flex items-center flex-wrap gap-1.5">
                             <span class="font-bold text-sm ${nickColor}">${m.nick}</span>
                             ${getGenderBadge(m.gender, m.age)}
                             ${m.role === 'ADMIN' ? '<span class="bg-red-600 text-white text-[10px] px-1.5 py-0.2 rounded font-bold">ADMIN</span>' : ''}
                             <span class="text-xs text-slate-400">${m.time || ''}</span>
                         </div>
-                        <p class="text-sm text-slate-700 mt-0.5">${m.text}</p>
+                        <p class="text-sm text-slate-700 mt-0.5 break-words">${m.text}</p>
                     </div>
                 </div>
             `}).join('');
-            container.scrollTop = container.scrollHeight;
+
+            if (forceBottom || shouldForceScrollToBottom || wasNearBottom) {
+                shouldForceScrollToBottom = false;
+                scrollChatToBottom(true);
+            }
         }
 
         window.sendChatMessage = async function(e) {
@@ -919,6 +946,8 @@
                     timestamp: serverTimestamp()
                 });
                 input.value = '';
+                shouldForceScrollToBottom = true;
+                scrollChatToBottom(true);
             } catch (err) {
                 console.error("Chyba pri odosielaní správy:", err);
                 alert("Nepodarilo sa odoslať správu do Firestore.");
