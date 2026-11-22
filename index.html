@@ -115,7 +115,7 @@
                 </div>
                 <div class="flex items-center space-x-3">
                     <button onclick="openProfileModal()" class="flex items-center space-x-2 bg-blue-900 hover:bg-blue-800 px-3 py-1.5 rounded-lg text-sm transition">
-                        <div class="w-7 h-7 bg-red-600 rounded-full flex items-center justify-center font-bold text-xs" id="userAvatarInitial">L</div>
+                        <div class="w-7 h-7 bg-red-600 rounded-full flex items-center justify-center font-bold text-xs overflow-hidden flex-shrink-0" id="userAvatarContainer"><span id="userAvatarInitial">L</span></div>
                         <span id="headerNick" class="font-medium">Načítavam...</span>
                         <span id="headerAdminBadge" class="bg-red-600 text-[10px] uppercase px-1.5 py-0.5 rounded font-bold hidden">ADMIN</span>
                     </button>
@@ -345,23 +345,105 @@
         </main>
     </div>
 
-    <!-- PROFILE MODAL -->
+    <!-- PROFILE MODAL (EDITABLE) -->
     <div id="profileModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-white rounded-2xl max-w-sm w-full p-6 relative">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 relative max-h-[92vh] overflow-y-auto shadow-2xl">
             <button onclick="closeProfileModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
-            <div class="text-center mb-6">
-                <div class="w-16 h-16 bg-slovakia-red text-white rounded-full flex items-center justify-center text-2xl font-black mx-auto mb-3" id="modalAvatar">L</div>
-                <h3 id="modalNick" class="text-xl font-bold text-slovakia-blue">Načítavam...</h3>
-                <p id="modalEmail" class="text-xs text-slate-500">email@adresa.sk</p>
+            
+            <form onsubmit="saveUserProfile(event)" class="space-y-4">
+                <div class="text-center">
+                    <div class="relative w-24 h-24 mx-auto mb-2 group">
+                        <div id="modalAvatarWrap" class="w-24 h-24 bg-slovakia-red text-white rounded-full flex items-center justify-center text-3xl font-black overflow-hidden border-4 border-slate-100 shadow-md">
+                            <span id="modalAvatar">L</span>
+                        </div>
+                        <label for="profilePhotoInput" title="Zmeniť fotku" class="absolute bottom-0 right-0 w-8 h-8 bg-slovakia-blue text-white rounded-full flex items-center justify-center cursor-pointer shadow-md hover:bg-opacity-90 transition">
+                            <i class="fa-solid fa-camera text-xs"></i>
+                        </label>
+                        <input type="file" id="profilePhotoInput" accept="image/*" onchange="handleProfilePhotoSelect(event)" class="hidden">
+                    </div>
+                    <div class="flex justify-center gap-3 text-xs mb-1">
+                        <label for="profilePhotoInput" class="text-slovakia-blue font-bold cursor-pointer hover:underline">Nahrať fotku</label>
+                        <button type="button" id="removePhotoBtn" onclick="removeProfilePhoto()" class="text-red-600 font-semibold hover:underline hidden">Odstrániť fotku</button>
+                    </div>
+                    <p id="modalEmail" class="text-xs text-slate-400">email@adresa.sk</p>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Prezývka (Nick)</label>
+                    <input type="text" id="editNickInput" required maxlength="24" class="w-full px-3.5 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-slovakia-blue focus:outline-none text-sm font-semibold">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Pohlavie</label>
+                        <select id="editGenderInput" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-slovakia-blue focus:outline-none text-sm bg-white">
+                            <option value="muž">♂ Muž</option>
+                            <option value="žena">♀ Žena</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Vek</label>
+                        <input type="number" id="editAgeInput" min="15" max="99" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-slovakia-blue focus:outline-none text-sm">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Kraj / Lokalita / Zahraničie</label>
+                    <select id="editLocInput" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-slovakia-blue focus:outline-none text-sm bg-white">
+                        <option value="Bratislavský">Bratislavský kraj</option>
+                        <option value="Západné Slovensko">Západné Slovensko</option>
+                        <option value="Stredné Slovensko">Stredné Slovensko</option>
+                        <option value="Východné Slovensko">Východné Slovensko</option>
+                        <option value="UK & Írsko">🇬🇧 UK & Írsko</option>
+                        <option value="Česká republika">🇨🇿 Česká republika</option>
+                        <option value="Nemecko & Rakúsko">🇩🇪/🇦🇹 Nemecko & Rakúsko</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Stav / Krátky status</label>
+                    <input type="text" id="editStatusInput" maxlength="60" placeholder="napr. Hľadám parťákov na pokec alebo pivo 🍺" class="w-full px-3.5 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-slovakia-blue focus:outline-none text-sm">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">O mne & Záujmy</label>
+                    <textarea id="editBioInput" rows="3" maxlength="250" placeholder="Napíš pár slov o sebe, odkiaľ si, čo máš rád..." class="w-full px-3.5 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-slovakia-blue focus:outline-none text-sm"></textarea>
+                </div>
+
+                <div class="flex justify-between items-center text-xs bg-slate-50 px-3 py-2 rounded-lg border border-slate-200">
+                    <span class="text-slate-500">Oprávnenie: <strong id="modalRole" class="text-slovakia-red">Člen</strong></span>
+                    <span class="text-slate-500">Účet: <strong id="modalVerified" class="text-green-600">Overený</strong></span>
+                </div>
+
+                <div id="profileSaveAlert" class="hidden text-xs font-bold text-center p-2 rounded-lg bg-green-100 text-green-700">Profil bol úspešne uložený!</div>
+
+                <div class="flex gap-2 pt-1">
+                    <button type="submit" id="saveProfileBtn" class="flex-1 bg-slovakia-blue text-white py-2.5 rounded-lg font-bold hover:bg-opacity-90 transition shadow">Uložiť zmeny</button>
+                    <button type="button" onclick="handleLogout()" class="px-4 bg-slovakia-red text-white py-2.5 rounded-lg font-bold hover:bg-opacity-90 transition" title="Odhlásiť sa"><i class="fa-solid fa-right-from-bracket"></i></button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- PUBLIC USER PROFILE MODAL (VIEW OTHER MEMBERS) -->
+    <div id="publicProfileModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 relative shadow-2xl">
+            <button onclick="closePublicProfileModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            <div class="text-center mb-4">
+                <div id="pubAvatarWrap" class="w-24 h-24 bg-slovakia-blue text-white rounded-full flex items-center justify-center text-3xl font-black mx-auto mb-3 overflow-hidden border-4 border-slate-100 shadow-md">U</div>
+                <h3 id="pubNick" class="text-xl font-bold text-slovakia-blue">Používateľ</h3>
+                <div id="pubBadges" class="mt-1 flex justify-center items-center gap-1.5"></div>
+                <p id="pubStatus" class="text-xs italic text-slate-500 mt-2 hidden"></p>
             </div>
-            <div class="space-y-3 text-sm bg-slate-50 p-4 rounded-xl mb-6">
-                <div class="flex justify-between"><span class="text-slate-500">Pohlavie:</span> <span id="modalGender" class="font-semibold">—</span></div>
-                <div class="flex justify-between"><span class="text-slate-500">Vek:</span> <span id="modalAge" class="font-semibold">—</span></div>
-                <div class="flex justify-between"><span class="text-slate-500">Lokalita:</span> <span id="modalLoc" class="font-semibold">Bratislavský</span></div>
-                <div class="flex justify-between"><span class="text-slate-500">Oprávnenie:</span> <span id="modalRole" class="font-semibold text-slovakia-red">Člen</span></div>
-                <div class="flex justify-between"><span class="text-slate-500">Stav e-mailu:</span> <span id="modalVerified" class="font-semibold text-green-600">Overený</span></div>
+            <div class="space-y-2.5 text-sm bg-slate-50 p-4 rounded-xl mb-5 border border-slate-100">
+                <div class="flex justify-between"><span class="text-slate-500">Lokalita:</span> <span id="pubLoc" class="font-semibold">—</span></div>
+                <div class="flex justify-between"><span class="text-slate-500">Miestnosť:</span> <span id="pubRoom" class="font-semibold text-slovakia-blue">—</span></div>
+                <div id="pubBioWrap" class="pt-2 border-t border-slate-200 hidden">
+                    <span class="block text-xs font-bold uppercase text-slate-400 mb-1">O mne</span>
+                    <p id="pubBio" class="text-xs text-slate-700 whitespace-pre-wrap"></p>
+                </div>
             </div>
-            <button onclick="handleLogout()" class="w-full bg-slovakia-red text-white py-3 rounded-lg font-bold hover:bg-opacity-90 transition">Odhlásiť sa z účtu</button>
+            <div id="pubActionArea"></div>
         </div>
     </div>
 
@@ -481,7 +563,10 @@
                 const savedLoc = localStorage.getItem('tcka_loc_' + firebaseUser.uid) || "Bratislavský";
                 const savedGender = localStorage.getItem('tcka_gender_' + firebaseUser.uid) || (isAdmin ? "muž" : "neuvedené");
                 const savedAge = localStorage.getItem('tcka_age_' + firebaseUser.uid) || "";
-                const nickName = isAdmin ? "Admin" : (firebaseUser.displayName || email.split('@')[0]);
+                const savedStatus = localStorage.getItem('tcka_status_' + firebaseUser.uid) || "";
+                const savedBio = localStorage.getItem('tcka_bio_' + firebaseUser.uid) || "";
+                const savedPhoto = localStorage.getItem('tcka_photo_' + firebaseUser.uid) || "";
+                const nickName = isAdmin ? (firebaseUser.displayName || "Admin") : (firebaseUser.displayName || email.split('@')[0]);
                 currentUser = {
                     uid: firebaseUser.uid,
                     nick: nickName,
@@ -489,26 +574,33 @@
                     location: savedLoc,
                     gender: savedGender,
                     age: savedAge,
+                    status: savedStatus,
+                    bio: savedBio,
+                    photoData: savedPhoto,
                     currentRoom: currentRoom,
                     role: isAdmin ? "ADMIN" : "Člen",
                     verified: firebaseUser.emailVerified
                 };
 
                 try {
-                    await setDoc(doc(db, "users", firebaseUser.uid), {
+                    const userPayload = {
                         uid: firebaseUser.uid,
                         nick: currentUser.nick,
                         email: email,
                         location: savedLoc,
                         gender: savedGender,
                         age: savedAge,
+                        status: savedStatus,
+                        bio: savedBio,
                         currentRoom: currentRoom,
                         online: true,
                         lastActiveMs: Date.now(),
                         role: currentUser.role,
                         verified: currentUser.verified,
                         lastActive: serverTimestamp()
-                    }, { merge: true });
+                    };
+                    if (savedPhoto) userPayload.photoData = savedPhoto;
+                    await setDoc(doc(db, "users", firebaseUser.uid), userPayload, { merge: true });
                 } catch (err) {
                     console.error("Chyba pri zápise používateľa do Firestore:", err);
                 }
@@ -622,12 +714,23 @@
             }
         };
 
+        function updateHeaderAvatarUI() {
+            if (!currentUser) return;
+            document.getElementById('headerNick').innerText = currentUser.nick;
+            const container = document.getElementById('userAvatarContainer');
+            if (!container) return;
+            if (currentUser.photoData) {
+                container.innerHTML = `<img src="${currentUser.photoData}" alt="${currentUser.nick}" class="w-full h-full object-cover">`;
+            } else {
+                container.innerHTML = `<span id="userAvatarInitial">${currentUser.nick.charAt(0).toUpperCase()}</span>`;
+            }
+        }
+
         function initAppSession() {
             document.getElementById('authScreen').classList.add('hidden');
             document.getElementById('mainApp').classList.remove('hidden');
 
-            document.getElementById('headerNick').innerText = currentUser.nick;
-            document.getElementById('userAvatarInitial').innerText = currentUser.nick.charAt(0).toUpperCase();
+            updateHeaderAvatarUI();
 
             if (currentUser.email === ADMIN_EMAIL && currentUser.role === "ADMIN") {
                 document.getElementById('headerAdminBadge').classList.remove('hidden');
@@ -689,12 +792,27 @@
             unsubscribeUsers = onSnapshot(collection(db, "users"), (snapshot) => {
                 usersDB = [];
                 snapshot.forEach((docSnap) => {
-                    usersDB.push(docSnap.data());
+                    const data = docSnap.data();
+                    usersDB.push(data);
+                    if (currentUser && data.uid === currentUser.uid) {
+                        if (data.photoData && !currentUser.photoData) {
+                            currentUser.photoData = data.photoData;
+                            try { localStorage.setItem('tcka_photo_' + currentUser.uid, data.photoData); } catch(e) {}
+                            updateHeaderAvatarUI();
+                        }
+                        if (data.status !== undefined) currentUser.status = data.status;
+                        if (data.bio !== undefined) currentUser.bio = data.bio;
+                        if (data.nick) {
+                            currentUser.nick = data.nick;
+                            updateHeaderAvatarUI();
+                        }
+                    }
                 });
                 renderActiveUsers();
                 renderStretko();
                 renderAdminPanel();
                 renderRpThreads();
+                renderChatMessages();
             });
 
             // 2. Počúvanie súkromných správ (RP) kde som odosielateľ alebo príjemca
@@ -903,14 +1021,22 @@
             const wasNearBottom = isUserNearBottom(container);
             const msgs = messagesDB[currentRoom] || [];
             container.innerHTML = msgs.map(m => {
+                const userObj = usersDB.find(u => (m.uid && u.uid === m.uid) || u.nick === m.nick);
+                const photo = (userObj && userObj.photoData) || m.photoData || '';
+                const targetUid = (userObj && userObj.uid) || m.uid || '';
                 const avatarBg = m.gender === 'žena' ? 'bg-pink-600' : 'bg-slovakia-blue';
                 const nickColor = m.gender === 'žena' ? 'text-pink-700' : 'text-slovakia-blue';
+                const avatarHtml = photo
+                    ? `<img src="${photo}" alt="${m.nick}" class="w-full h-full object-cover">`
+                    : `${(m.nick || 'A').charAt(0).toUpperCase()}`;
+                const clickAttr = targetUid ? `onclick="openPublicProfile('${targetUid}')"` : '';
+                const cursorClass = targetUid ? 'cursor-pointer hover:underline' : '';
                 return `
                 <div class="flex items-start space-x-3">
-                    <div class="w-8 h-8 rounded-full ${avatarBg} text-white flex items-center justify-center font-bold text-xs flex-shrink-0">${(m.nick || 'A').charAt(0).toUpperCase()}</div>
+                    <div ${clickAttr} class="w-9 h-9 rounded-full ${avatarBg} text-white flex items-center justify-center font-bold text-xs flex-shrink-0 overflow-hidden shadow-sm ${targetUid ? 'cursor-pointer' : ''}">${avatarHtml}</div>
                     <div class="min-w-0 flex-1">
                         <div class="flex items-center flex-wrap gap-1.5">
-                            <span class="font-bold text-sm ${nickColor}">${m.nick}</span>
+                            <span ${clickAttr} class="font-bold text-sm ${nickColor} ${cursorClass}">${m.nick}</span>
                             ${getGenderBadge(m.gender, m.age)}
                             ${m.role === 'ADMIN' ? '<span class="bg-red-600 text-white text-[10px] px-1.5 py-0.2 rounded font-bold">ADMIN</span>' : ''}
                             <span class="text-xs text-slate-400">${m.time || ''}</span>
@@ -937,6 +1063,7 @@
             
             try {
                 await addDoc(collection(db, "rooms", currentRoom, "messages"), {
+                    uid: currentUser.uid,
                     nick: currentUser.nick,
                     gender: currentUser.gender || 'neuvedené',
                     age: currentUser.age || '',
@@ -1026,17 +1153,25 @@
                     ? '<i class="fa-solid fa-venus text-pink-600 text-xs" title="Žena"></i>'
                     : (u.gender === 'muž' ? '<i class="fa-solid fa-mars text-sky-600 text-xs" title="Muž"></i>' : '');
                 const nickClass = u.gender === 'žena' ? 'text-pink-700 font-semibold' : 'text-slate-700 font-medium';
+                const avatarBg = u.gender === 'žena' ? 'bg-pink-600' : 'bg-slovakia-blue';
+                const miniAvatar = u.photoData
+                    ? `<img src="${u.photoData}" alt="${u.nick}" class="w-full h-full object-cover">`
+                    : `${(u.nick || 'U').charAt(0).toUpperCase()}`;
                 return `
                 <div class="flex items-center justify-between p-2 hover:bg-slate-50 rounded-lg group">
-                    <div class="overflow-hidden">
-                        <div class="flex items-center space-x-1.5">
-                            <span class="w-2.5 h-2.5 rounded-full flex-shrink-0 ${u.role === 'ADMIN' ? 'bg-red-600' : 'bg-green-500'}"></span>
-                            ${genderIcon}
-                            <span class="text-sm ${nickClass} truncate">${u.nick}</span>
-                            ${u.age ? `<span class="text-[10px] text-slate-400">(${u.age})</span>` : ''}
-                            ${u.role === 'ADMIN' ? '<span class="text-[9px] bg-red-100 text-red-600 font-bold px-1 rounded">ADMIN</span>' : ''}
+                    <div onclick="${isMe ? 'openProfileModal()' : `openPublicProfile('${u.uid}')`}" class="flex items-center space-x-2 overflow-hidden cursor-pointer flex-1">
+                        <div class="relative w-8 h-8 rounded-full ${avatarBg} text-white flex items-center justify-center font-bold text-xs flex-shrink-0 overflow-hidden">
+                            ${miniAvatar}
                         </div>
-                        <div class="text-[10px] text-slate-400 pl-4 truncate">${u.location}</div>
+                        <div class="overflow-hidden">
+                            <div class="flex items-center space-x-1">
+                                <span class="w-2 h-2 rounded-full flex-shrink-0 ${u.role === 'ADMIN' ? 'bg-red-600' : 'bg-green-500'}"></span>
+                                ${genderIcon}
+                                <span class="text-sm ${nickClass} truncate hover:underline">${u.nick}</span>
+                                ${u.age ? `<span class="text-[10px] text-slate-400">(${u.age})</span>` : ''}
+                            </div>
+                            <div class="text-[10px] text-slate-400 truncate">${u.status ? u.status : u.location}</div>
+                        </div>
                     </div>
                     <div class="flex items-center space-x-1 flex-shrink-0">
                         ${!isMe ? `<button onclick="openRpToUser('${u.uid}', '${u.nick}')" title="Poslať RP" class="text-slovakia-blue hover:text-slovakia-red text-xs p-1"><i class="fa-solid fa-envelope"></i></button>` : ''}
@@ -1064,19 +1199,35 @@
                 const isMe = currentUser && u.uid === currentUser.uid;
                 const cardBorder = u.gender === 'žena' ? 'border-pink-200 bg-pink-50/40' : 'border-slate-200 bg-slate-50';
                 const nameColor = u.gender === 'žena' ? 'text-pink-700' : 'text-slovakia-blue';
+                const avatarBg = u.gender === 'žena' ? 'bg-pink-600' : 'bg-slovakia-blue';
+                const photoHtml = u.photoData
+                    ? `<img src="${u.photoData}" alt="${u.nick}" class="w-full h-full object-cover">`
+                    : `${(u.nick || 'U').charAt(0).toUpperCase()}`;
+                const bioPreview = u.bio || u.status || (isMe ? 'Klikni na svoj profil hore a pridaj si fotku alebo popis o sebe.' : 'Hľadá nových priateľov a pokec v komunite.');
                 return `
-                <div class="border ${cardBorder} rounded-xl p-4 flex flex-col justify-between">
+                <div class="border ${cardBorder} rounded-xl p-4 flex flex-col justify-between shadow-sm hover:shadow transition">
                     <div>
-                        <div class="flex items-center justify-between mb-1.5">
-                            <span class="font-bold ${nameColor} text-lg">${u.nick} ${u.role === 'ADMIN' ? '<span class="text-[10px] bg-red-600 text-white px-1.5 py-0.5 rounded ml-1">ADMIN</span>' : ''}</span>
-                            <span class="text-xs bg-blue-100 text-slovakia-blue px-2 py-0.5 rounded font-semibold">${u.location}</span>
+                        <div class="flex items-start space-x-3 mb-3">
+                            <div onclick="${isMe ? 'openProfileModal()' : `openPublicProfile('${u.uid}')`}" class="w-14 h-14 rounded-full ${avatarBg} text-white flex items-center justify-center font-black text-xl flex-shrink-0 overflow-hidden border-2 border-white shadow cursor-pointer">
+                                ${photoHtml}
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <div class="flex items-center justify-between gap-1">
+                                    <span onclick="${isMe ? 'openProfileModal()' : `openPublicProfile('${u.uid}')`}" class="font-bold ${nameColor} text-base truncate cursor-pointer hover:underline">${u.nick}</span>
+                                    <span class="text-[10px] bg-blue-100 text-slovakia-blue px-2 py-0.5 rounded font-semibold flex-shrink-0">${u.location}</span>
+                                </div>
+                                <div class="mt-1">${getGenderBadge(u.gender, u.age)}</div>
+                                ${u.status ? `<p class="text-[11px] italic text-slate-600 mt-1 truncate">"${u.status}"</p>` : ''}
+                            </div>
                         </div>
-                        <div class="mb-3">${getGenderBadge(u.gender, u.age)}</div>
-                        <p class="text-xs text-slate-500 mb-4">${isMe ? 'Toto je tvoj verejný profil v komunite.' : 'Hľadá nových priateľov a pokec v komunite.'}</p>
+                        <p class="text-xs text-slate-600 mb-4 line-clamp-2">${bioPreview}</p>
                     </div>
                     ${!isMe 
-                        ? `<button onclick="openRpToUser('${u.uid}', '${u.nick}')" class="w-full bg-slovakia-blue text-white py-2 rounded-lg text-xs font-bold hover:bg-opacity-90 transition"><i class="fa-solid fa-paper-plane mr-1.5"></i>Poslať RP správu</button>`
-                        : `<div class="w-full text-center py-2 rounded-lg text-xs font-semibold text-slate-400 bg-slate-200/70">Tvoj profil</div>`
+                        ? `<div class="flex gap-2">
+                            <button onclick="openPublicProfile('${u.uid}')" class="px-3 py-2 rounded-lg border border-slate-300 bg-white text-slate-700 text-xs font-bold hover:bg-slate-100 transition">Profil</button>
+                            <button onclick="openRpToUser('${u.uid}', '${u.nick}')" class="flex-1 bg-slovakia-blue text-white py-2 rounded-lg text-xs font-bold hover:bg-opacity-90 transition"><i class="fa-solid fa-paper-plane mr-1.5"></i>Poslať RP</button>
+                           </div>`
+                        : `<button onclick="openProfileModal()" class="w-full text-center py-2 rounded-lg text-xs font-bold text-slovakia-blue bg-blue-100/80 hover:bg-blue-200/80 transition"><i class="fa-solid fa-pen mr-1"></i>Upraviť môj profil</button>`
                     }
                 </div>
             `}).join('');
@@ -1424,22 +1575,207 @@
             alert("Používateľov z Auth zmažeš priamo vo Firebase Console.");
         };
 
+        let pendingProfilePhotoData = null;
+
+        function renderEditModalAvatar(photoData, nick) {
+            const wrap = document.getElementById('modalAvatarWrap');
+            const removeBtn = document.getElementById('removePhotoBtn');
+            if (!wrap) return;
+            if (photoData) {
+                wrap.innerHTML = `<img src="${photoData}" alt="${nick}" class="w-full h-full object-cover">`;
+                if (removeBtn) removeBtn.classList.remove('hidden');
+            } else {
+                wrap.innerHTML = `<span id="modalAvatar">${(nick || 'U').charAt(0).toUpperCase()}</span>`;
+                if (removeBtn) removeBtn.classList.add('hidden');
+            }
+        }
+
+        window.handleProfilePhotoSelect = function(e) {
+            const file = e.target.files && e.target.files[0];
+            if (!file) return;
+            if (!file.type.startsWith('image/')) {
+                alert("Vyber prosím obrázok (JPG, PNG, WebP).");
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                const img = new Image();
+                img.onload = function() {
+                    // Zmenšiť a komprimovať fotku na max 220x220 px (ideálne pre rýchle načítanie a Firestore)
+                    const maxDim = 220;
+                    let w = img.width;
+                    let h = img.height;
+                    if (w > h) {
+                        if (w > maxDim) { h = Math.round(h * maxDim / w); w = maxDim; }
+                    } else {
+                        if (h > maxDim) { w = Math.round(w * maxDim / h); h = maxDim; }
+                    }
+                    const canvas = document.createElement('canvas');
+                    canvas.width = w;
+                    canvas.height = h;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, w, h);
+                    pendingProfilePhotoData = canvas.toDataURL('image/jpeg', 0.8);
+                    renderEditModalAvatar(pendingProfilePhotoData, document.getElementById('editNickInput').value || currentUser.nick);
+                };
+                img.src = evt.target.result;
+            };
+            reader.readAsDataURL(file);
+        };
+
+        window.removeProfilePhoto = function() {
+            pendingProfilePhotoData = "";
+            renderEditModalAvatar("", document.getElementById('editNickInput').value || currentUser.nick);
+        };
+
         window.openProfileModal = function() {
             if (!currentUser) return;
-            document.getElementById('modalAvatar').innerText = currentUser.nick.charAt(0).toUpperCase();
-            document.getElementById('modalNick').innerText = currentUser.nick;
+            pendingProfilePhotoData = currentUser.photoData || "";
+            renderEditModalAvatar(pendingProfilePhotoData, currentUser.nick);
             document.getElementById('modalEmail').innerText = currentUser.email;
-            const genderLabel = currentUser.gender === 'žena' ? '♀ Žena' : (currentUser.gender === 'muž' ? '♂ Muž' : 'Neuvedené');
-            document.getElementById('modalGender').innerText = genderLabel;
-            document.getElementById('modalAge').innerText = currentUser.age ? currentUser.age + ' rokov' : 'Neuvedený';
-            document.getElementById('modalLoc').innerText = currentUser.location;
+            document.getElementById('editNickInput').value = currentUser.nick || '';
+            document.getElementById('editGenderInput').value = (currentUser.gender === 'žena' || currentUser.gender === 'muž') ? currentUser.gender : 'muž';
+            document.getElementById('editAgeInput').value = currentUser.age || '';
+            document.getElementById('editLocInput').value = currentUser.location || 'Bratislavský';
+            document.getElementById('editStatusInput').value = currentUser.status || '';
+            document.getElementById('editBioInput').value = currentUser.bio || '';
             document.getElementById('modalRole').innerText = currentUser.role;
             document.getElementById('modalVerified').innerText = currentUser.verified ? "Overený" : "Admin účet";
+            document.getElementById('profileSaveAlert').classList.add('hidden');
             document.getElementById('profileModal').classList.remove('hidden');
         };
 
         window.closeProfileModal = function() {
             document.getElementById('profileModal').classList.add('hidden');
+        };
+
+        window.saveUserProfile = async function(e) {
+            e.preventDefault();
+            if (!currentUser) return;
+            const btn = document.getElementById('saveProfileBtn');
+            const newNick = document.getElementById('editNickInput').value.trim();
+            const newGender = document.getElementById('editGenderInput').value;
+            const newAge = document.getElementById('editAgeInput').value.trim();
+            const newLoc = document.getElementById('editLocInput').value;
+            const newStatus = document.getElementById('editStatusInput').value.trim();
+            const newBio = document.getElementById('editBioInput').value.trim();
+            const newPhoto = pendingProfilePhotoData !== null ? pendingProfilePhotoData : (currentUser.photoData || "");
+
+            if (!newNick) return;
+
+            btn.disabled = true;
+            btn.innerText = "Ukladám...";
+
+            try {
+                if (auth.currentUser && newNick !== currentUser.nick) {
+                    await updateProfile(auth.currentUser, { displayName: newNick });
+                }
+
+                currentUser.nick = newNick;
+                currentUser.gender = newGender;
+                currentUser.age = newAge;
+                currentUser.location = newLoc;
+                currentUser.status = newStatus;
+                currentUser.bio = newBio;
+                currentUser.photoData = newPhoto;
+
+                localStorage.setItem('tcka_loc_' + currentUser.uid, newLoc);
+                localStorage.setItem('tcka_gender_' + currentUser.uid, newGender);
+                localStorage.setItem('tcka_age_' + currentUser.uid, newAge);
+                localStorage.setItem('tcka_status_' + currentUser.uid, newStatus);
+                localStorage.setItem('tcka_bio_' + currentUser.uid, newBio);
+                try {
+                    if (newPhoto) {
+                        localStorage.setItem('tcka_photo_' + currentUser.uid, newPhoto);
+                    } else {
+                        localStorage.removeItem('tcka_photo_' + currentUser.uid);
+                    }
+                } catch (storageErr) {}
+
+                await setDoc(doc(db, "users", currentUser.uid), {
+                    uid: currentUser.uid,
+                    nick: newNick,
+                    gender: newGender,
+                    age: newAge,
+                    location: newLoc,
+                    status: newStatus,
+                    bio: newBio,
+                    photoData: newPhoto,
+                    lastActiveMs: Date.now(),
+                    lastActive: serverTimestamp()
+                }, { merge: true });
+
+                updateHeaderAvatarUI();
+                renderActiveUsers();
+                renderStretko();
+                renderChatMessages();
+
+                const alertEl = document.getElementById('profileSaveAlert');
+                alertEl.classList.remove('hidden');
+                setTimeout(() => {
+                    closeProfileModal();
+                }, 900);
+            } catch (err) {
+                console.error("Chyba pri ukladaní profilu:", err);
+                alert("Nepodarilo sa uložiť profil: " + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Uložiť zmeny";
+            }
+        };
+
+        window.openPublicProfile = function(uid) {
+            const u = usersDB.find(item => item.uid === uid);
+            if (!u) return;
+            if (currentUser && u.uid === currentUser.uid) {
+                openProfileModal();
+                return;
+            }
+            const avatarWrap = document.getElementById('pubAvatarWrap');
+            const avatarBg = u.gender === 'žena' ? 'bg-pink-600' : 'bg-slovakia-blue';
+            avatarWrap.className = `w-24 h-24 ${avatarBg} text-white rounded-full flex items-center justify-center text-3xl font-black mx-auto mb-3 overflow-hidden border-4 border-slate-100 shadow-md`;
+            if (u.photoData) {
+                avatarWrap.innerHTML = `<img src="${u.photoData}" alt="${u.nick}" class="w-full h-full object-cover">`;
+            } else {
+                avatarWrap.innerText = (u.nick || 'U').charAt(0).toUpperCase();
+            }
+
+            document.getElementById('pubNick').innerText = u.nick;
+            document.getElementById('pubBadges').innerHTML = `
+                ${getGenderBadge(u.gender, u.age)}
+                ${u.role === 'ADMIN' ? '<span class="bg-red-600 text-white text-[10px] px-1.5 py-0.5 rounded font-bold">ADMIN</span>' : ''}
+            `;
+
+            const statusEl = document.getElementById('pubStatus');
+            if (u.status) {
+                statusEl.innerText = `"${u.status}"`;
+                statusEl.classList.remove('hidden');
+            } else {
+                statusEl.classList.add('hidden');
+            }
+
+            document.getElementById('pubLoc').innerText = u.location || 'Neuvedená';
+            document.getElementById('pubRoom').innerText = u.currentRoom || 'Hlavná sála';
+
+            const bioWrap = document.getElementById('pubBioWrap');
+            const bioEl = document.getElementById('pubBio');
+            if (u.bio) {
+                bioEl.innerText = u.bio;
+                bioWrap.classList.remove('hidden');
+            } else {
+                bioWrap.classList.add('hidden');
+            }
+
+            document.getElementById('pubActionArea').innerHTML = `
+                <button onclick="closePublicProfileModal(); openRpToUser('${u.uid}', '${u.nick}')" class="w-full bg-slovakia-blue text-white py-2.5 rounded-lg text-sm font-bold hover:bg-opacity-90 transition shadow">
+                    <i class="fa-solid fa-paper-plane mr-2"></i>Poslať súkromnú správu (RP)
+                </button>
+            `;
+            document.getElementById('publicProfileModal').classList.remove('hidden');
+        };
+
+        window.closePublicProfileModal = function() {
+            document.getElementById('publicProfileModal').classList.add('hidden');
         };
     </script>
 </body>
