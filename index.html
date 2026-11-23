@@ -354,6 +354,15 @@
                     </div>
                 </div>
 
+                <div class="mb-6">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="font-bold text-sm text-slate-500 uppercase tracking-wider">Prijaté hlásenia nevhodného chovania (<span id="adminReportsCount">0</span>)</h3>
+                    </div>
+                    <div id="adminReportsList" class="space-y-2.5 max-h-64 overflow-y-auto border rounded-xl p-3 bg-slate-50">
+                        <div class="text-xs text-slate-400 text-center py-4">Zatiaľ žiadne hlásenia.</div>
+                    </div>
+                </div>
+
                 <h3 class="font-bold text-sm text-slate-500 uppercase tracking-wider mb-3">Správa všetkých používateľov</h3>
                 <div class="border rounded-xl overflow-hidden flex-1">
                     <table class="w-full text-left border-collapse">
@@ -671,10 +680,12 @@
             bazar: []
         };
 
+        let reportsDB = [];
         let unsubscribeMessages = null;
         let unsubscribeUsers = null;
         let unsubscribePrivateMessages = null;
         let unsubscribeCommunityPosts = null;
+        let unsubscribeReports = null;
 
         function showAuthAlert(msg, isError = true) {
             const box = document.getElementById('authMessage');
@@ -757,6 +768,7 @@
                 if (unsubscribeUsers) unsubscribeUsers();
                 if (unsubscribePrivateMessages) unsubscribePrivateMessages();
                 if (unsubscribeCommunityPosts) unsubscribeCommunityPosts();
+                if (unsubscribeReports) unsubscribeReports();
                 document.getElementById('mainApp').classList.add('hidden');
                 document.getElementById('authScreen').classList.remove('hidden');
             }
@@ -1024,6 +1036,11 @@
 
             // 3. Načítanie príspevkov pre Spolujazdu a Bazár z Firestore
             listenCommunityPosts();
+
+            // 4b. Pre admina načítanie hlásení z kolekcie reports
+            if (currentUser && currentUser.email === ADMIN_EMAIL) {
+                listenReportsForAdmin();
+            }
 
             // 4. Načítanie správ pre aktuálnu verejnú miestnosť
             loadRoomMessages();
@@ -1941,7 +1958,67 @@
             }, 2000);
         };
 
+        function listenReportsForAdmin() {
+            if (unsubscribeReports) unsubscribeReports();
+            unsubscribeReports = onSnapshot(collection(db, "reports"), (snapshot) => {
+                const items = [];
+                snapshot.forEach((docSnap) => {
+                    items.push({ id: docSnap.id, ...docSnap.data() });
+                });
+                items.sort((a, b) => (b.createdAtMs || 0) - (a.createdAtMs || 0));
+                reportsDB = items;
+                renderAdminReports();
+            }, (err) => {
+                console.error("Chyba pri načítaní hlásení:", err);
+            });
+        }
+
+        window.deleteReport = async function(reportId) {
+            if (!currentUser || currentUser.email !== ADMIN_EMAIL || !reportId) return;
+            try {
+                await deleteDoc(doc(db, "reports", reportId));
+            } catch (err) {
+                console.error("Chyba pri mazaní hlásenia:", err);
+                alert("Nepodarilo sa zmazať hlásenie.");
+            }
+        };
+
+        function renderAdminReports() {
+            const listEl = document.getElementById('adminReportsList');
+            const countEl = document.getElementById('adminReportsCount');
+            if (!listEl) return;
+            if (countEl) countEl.innerText = reportsDB.length;
+
+            if (!reportsDB.length) {
+                listEl.innerHTML = `<div class="text-xs text-slate-400 text-center py-4">Zatiaľ žiadne hlásenia.</div>`;
+                return;
+            }
+
+            listEl.innerHTML = reportsDB.map(r => {
+                const timeStr = r.createdAtMs ? new Date(r.createdAtMs).toLocaleString('sk-SK', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
+                return `
+                    <div class="bg-white border border-red-100 rounded-lg p-3 text-xs shadow-sm flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                        <div class="space-y-1 min-w-0 flex-1">
+                            <div class="flex flex-wrap items-center gap-2">
+                                <span class="px-2 py-0.5 rounded bg-red-100 text-slovakia-red font-bold">${r.reason || 'Hlásenie'}</span>
+                                <span class="font-bold text-slovakia-blue">Nahlasovaný: ${r.targetNick || 'Člen'}</span>
+                                <span class="text-slate-400">• od: <strong>${r.reporterNick || 'Člen'}</strong></span>
+                                ${timeStr ? `<span class="text-slate-400">• ${timeStr}</span>` : ''}
+                            </div>
+                            ${r.context ? `<div class="text-slate-500">Kontext: <span class="font-medium text-slate-700">${r.context}</span></div>` : ''}
+                            ${r.details ? `<p class="text-slate-700 whitespace-pre-wrap bg-slate-50 p-2 rounded border border-slate-100">${r.details}</p>` : ''}
+                        </div>
+                        <div class="flex items-center gap-2 flex-shrink-0">
+                            ${r.targetUid && r.targetUid !== currentUser.uid ? `<button type="button" onclick="openRpToUser('${r.targetUid}', '${String(r.targetNick || 'Člen').replace(/'/g, "&#39;")}')" class="px-2.5 py-1 rounded bg-slovakia-blue text-white font-bold hover:bg-opacity-90">RP</button>` : ''}
+                            <button type="button" onclick="deleteReport('${r.id}')" class="px-2.5 py-1 rounded bg-red-600 text-white font-bold hover:bg-red-700">Zmazať</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
         function renderAdminPanel() {
+            renderAdminReports();
             const totalEl = document.getElementById('adminTotalUsers');
             const tbody = document.getElementById('adminUsersTableBody');
             if (!totalEl || !tbody) return;
