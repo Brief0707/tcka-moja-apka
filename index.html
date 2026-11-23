@@ -1447,8 +1447,20 @@
         window.openRpToUser = function(targetUid, targetNick, postContext = null) {
             if (!currentUser) return;
             if (targetUid === currentUser.uid) return;
-            
-            openNewRpModal(targetUid, targetNick, postContext);
+
+            pendingRpPostContext = postContext;
+            activeRpPartnerUid = targetUid;
+            switchSection('messages');
+            renderRpConversation(targetUid);
+
+            const replyInput = document.getElementById('rpReplyInput');
+            if (replyInput) {
+                if (postContext && postContext.title) {
+                    const label = postContext.type === 'bazar' ? 'inzerátu' : 'ponuke spolujazdy';
+                    replyInput.value = `Ahoj, píšem ti ohľadom tvojho ${label}: "${postContext.title}" — `;
+                }
+                replyInput.focus();
+            }
         };
 
         window.openNewRpModal = function(preselectUid = null, preselectNick = null, postContext = null) {
@@ -1707,9 +1719,17 @@
             const partnerNick = onlineUser ? onlineUser.nick : (document.getElementById('rpActivePartnerNick').innerText.replace('Konverzácia s: ', '') || 'Člen');
             const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
+            const postRefToAttach = (pendingRpPostContext && pendingRpPostContext.title)
+                ? {
+                    type: pendingRpPostContext.type || 'spolujazda',
+                    title: pendingRpPostContext.title,
+                    desc: pendingRpPostContext.desc || ''
+                }
+                : null;
+            pendingRpPostContext = null;
             input.value = '';
             try {
-                await addDoc(collection(db, "private_messages"), {
+                const payload = {
                     fromUid: currentUser.uid,
                     fromNick: currentUser.nick,
                     toUid: activeRpPartnerUid,
@@ -1720,7 +1740,11 @@
                     read: false,
                     createdAtMs: Date.now(),
                     timestamp: serverTimestamp()
-                });
+                };
+                if (postRefToAttach) {
+                    payload.postRef = postRefToAttach;
+                }
+                await addDoc(collection(db, "private_messages"), payload);
             } catch (err) {
                 console.error("Chyba pri odoslaní odpovede:", err);
                 alert("Nepodarilo sa odoslať správu.");
