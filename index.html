@@ -1310,15 +1310,16 @@
         };
 
         // ================= SÚKROMNÉ SPRÁVY (RP) FUNKCIE =================
-        window.openRpToUser = function(targetUid, targetNick) {
+        let pendingRpPostContext = null;
+
+        window.openRpToUser = function(targetUid, targetNick, postContext = null) {
             if (!currentUser) return;
             if (targetUid === currentUser.uid) return;
             
-            // Ak už s používateľom máme konverzáciu, môžeme rovno otvoriť okno alebo modal
-            openNewRpModal(targetUid, targetNick);
+            openNewRpModal(targetUid, targetNick, postContext);
         };
 
-        window.openNewRpModal = function(preselectUid = null, preselectNick = null) {
+        window.openNewRpModal = function(preselectUid = null, preselectNick = null, postContext = null) {
             if (!currentUser) return;
             const select = document.getElementById('rpRecipientSelect');
             const otherUsers = usersDB.filter(u => u.uid !== currentUser.uid);
@@ -1327,7 +1328,6 @@
                 `<option value="${u.uid}" data-nick="${u.nick}" ${u.uid === preselectUid ? 'selected' : ''}>${u.nick} (${u.location})</option>`
             ).join('');
 
-            // Ak bol používateľ vybraný priamo, ale medzitým odišiel z online zoznamu, pridáme ho ako voľbu
             if (preselectUid && !otherUsers.some(u => u.uid === preselectUid)) {
                 optionsHtml = `<option value="${preselectUid}" data-nick="${preselectNick || 'Člen'}" selected>${preselectNick || 'Člen'}</option>` + optionsHtml;
             }
@@ -1337,8 +1337,15 @@
                 return;
             }
 
+            pendingRpPostContext = postContext;
             select.innerHTML = optionsHtml;
-            document.getElementById('rpModalText').value = '';
+            const textArea = document.getElementById('rpModalText');
+            if (postContext && postContext.title) {
+                const label = postContext.type === 'bazar' ? 'inzerátu' : 'ponuke spolujazdy';
+                textArea.value = `Ahoj, píšem ti ohľadom tvojho ${label}: "${postContext.title}" — `;
+            } else {
+                textArea.value = '';
+            }
             document.getElementById('rpModal').classList.remove('hidden');
         };
 
@@ -1363,7 +1370,7 @@
 
             try {
                 const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                await addDoc(collection(db, "private_messages"), {
+                const payload = {
                     fromUid: currentUser.uid,
                     fromNick: currentUser.nick,
                     toUid: recipientUid,
@@ -1374,8 +1381,17 @@
                     read: false,
                     createdAtMs: Date.now(),
                     timestamp: serverTimestamp()
-                });
+                };
+                if (pendingRpPostContext && pendingRpPostContext.title) {
+                    payload.postRef = {
+                        type: pendingRpPostContext.type || 'spolujazda',
+                        title: pendingRpPostContext.title,
+                        desc: pendingRpPostContext.desc || ''
+                    };
+                }
+                await addDoc(collection(db, "private_messages"), payload);
 
+                pendingRpPostContext = null;
                 closeRpModal();
                 activeRpPartnerUid = recipientUid;
                 switchSection('messages');
@@ -1521,6 +1537,15 @@
 
             feedEl.innerHTML = convo.map(m => {
                 const isMine = m.fromUid === currentUser.uid;
+                const ref = m.postRef;
+                const refBadgeLabel = ref && ref.type === 'bazar' ? 'Odpoveď na inzerát z Bazára' : 'Odpoveď na ponuku Spolujazdy';
+                const refHtml = ref && ref.title ? `
+                    <div class="mb-2 px-3 py-2 rounded-lg text-xs border-l-4 ${isMine ? 'bg-blue-950/70 border-amber-300 text-blue-100' : 'bg-slate-100 border-slovakia-red text-slate-700'}">
+                        <div class="font-bold uppercase tracking-wider text-[10px] ${isMine ? 'text-amber-300' : 'text-slovakia-red'} mb-0.5">${refBadgeLabel}</div>
+                        <div class="font-bold">${ref.title}</div>
+                        ${ref.desc ? `<div class="text-[11px] opacity-85 line-clamp-2 mt-0.5">${ref.desc}</div>` : ''}
+                    </div>
+                ` : '';
                 return `
                 <div class="flex ${isMine ? 'justify-end' : 'justify-start'}">
                     <div class="max-w-md rounded-2xl px-4 py-2.5 shadow-sm ${isMine ? 'bg-slovakia-blue text-white rounded-br-none' : 'bg-white border border-slate-200 text-slate-800 rounded-bl-none'}">
@@ -1528,6 +1553,7 @@
                             <span class="text-[11px] font-bold ${isMine ? 'text-blue-200' : 'text-slovakia-blue'}">${isMine ? 'Ja' : m.fromNick}</span>
                             <span class="text-[10px] ${isMine ? 'text-blue-200' : 'text-slate-400'}">${m.time || ''}</span>
                         </div>
+                        ${refHtml}
                         <p class="text-sm whitespace-pre-wrap">${m.text}</p>
                     </div>
                 </div>
@@ -1595,8 +1621,11 @@
             const deleteBtn = canDelete && p.id
                 ? `<button onclick="deleteCommunityPost('${p.id}')" title="Zmazať príspevok" class="text-slate-400 hover:text-red-600 text-xs ml-2 transition"><i class="fa-solid fa-trash"></i></button>`
                 : '';
+            const safeTitle = String(p.title || '').replace(/'/g, "&#39;").replace(/"/g, "&quot;");
+            const safeDesc = String(p.desc || '').replace(/'/g, "&#39;").replace(/"/g, "&quot;");
+            const safeType = String(p.type || 'spolujazda').replace(/'/g, "&#39;");
             const rpAction = currentUser && p.authorUid && p.authorUid !== currentUser.uid
-                ? `<button onclick="openRpToUser('${p.authorUid}', '${p.author}')" class="text-slovakia-red hover:underline font-bold">Kontakt: RP</button>`
+                ? `<button onclick="openRpToUser('${p.authorUid}', '${p.author}', { type: '${safeType}', title: '${safeTitle}', desc: '${safeDesc}' })" class="text-slovakia-red hover:underline font-bold">Kontakt: RP</button>`
                 : `<span class="text-slovakia-red font-bold">Kontakt: ${p.contact || 'RP'}</span>`;
 
             return `
