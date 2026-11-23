@@ -200,6 +200,9 @@
                         <!-- Dynamické správy -->
                     </div>
 
+                    <!-- Typing Indicator -->
+                    <div id="roomTypingIndicator" class="hidden px-4 py-1 bg-blue-50/70 border-t border-blue-100 text-[11px] text-slovakia-blue flex-shrink-0"></div>
+
                     <!-- Quick phrases -->
                     <div class="px-3 md:px-4 py-1.5 md:py-2 bg-slate-50 border-t border-slate-200 flex items-center gap-1.5 md:gap-2 overflow-x-auto text-xs flex-shrink-0">
                         <span class="text-slate-400 font-bold self-center">Rýchle:</span>
@@ -212,7 +215,7 @@
 
                     <!-- Input form -->
                     <form onsubmit="sendChatMessage(event)" class="px-2.5 py-2 md:p-4 bg-white border-t border-slate-200 flex items-center gap-2 flex-shrink-0">
-                        <input type="text" id="chatInput" placeholder="Napíš správu..." class="flex-1 min-w-0 px-3 md:px-4 py-2 md:py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-slovakia-blue focus:outline-none text-sm">
+                        <input type="text" id="chatInput" oninput="handleChatTypingInput()" placeholder="Napíš správu..." class="flex-1 min-w-0 px-3 md:px-4 py-2 md:py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-slovakia-blue focus:outline-none text-sm">
                         <button type="submit" class="bg-slovakia-blue text-white px-3.5 md:px-6 py-2 md:py-3 rounded-lg font-bold hover:bg-opacity-90 transition flex items-center space-x-1.5 md:space-x-2 flex-shrink-0 text-sm"><span class="hidden sm:inline">Poslať</span><i class="fa-solid fa-paper-plane"></i></button>
                     </form>
                 </div>
@@ -512,6 +515,79 @@
             <button type="button" onclick="closeAllMobileDrawers(); handleLogout();" class="w-full py-2.5 px-3 rounded-xl bg-red-600/90 hover:bg-red-600 text-xs font-bold flex items-center justify-center gap-2">
                 <i class="fa-solid fa-right-from-bracket"></i><span>Odhlásiť sa</span>
             </button>
+        </div>
+    </div>
+
+    <!-- ADD COMMUNITY POST MODAL (SPOLUJAZDA & BAZÁR S FOTKOU) -->
+    <div id="postModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 relative shadow-2xl max-h-[92vh] overflow-y-auto">
+            <button type="button" onclick="closePostModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            <h3 id="postModalTitle" class="text-xl font-bold text-slovakia-blue mb-1">Nový príspevok</h3>
+            <p id="postModalSub" class="text-xs text-slate-500 mb-4">Príspevok sa zobrazí všetkým členom v reálnom čase.</p>
+            <form onsubmit="submitPostModal(event)" class="space-y-4">
+                <input type="hidden" id="postModalType" value="bazar">
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Názov ponuky / inzerátu</label>
+                    <input type="text" id="postTitleInput" required maxlength="80" placeholder="napr. Predám kočík / Idem smer Košice" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-slovakia-blue focus:outline-none text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Popis</label>
+                    <textarea id="postDescInput" rows="3" required maxlength="400" placeholder="Doplň detaily, cenu alebo čas odchodu..." class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-slovakia-blue focus:outline-none text-sm"></textarea>
+                </div>
+                <div id="postPhotoField">
+                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Fotka (voliteľné — najmä pre Bazár)</label>
+                    <div class="flex items-center gap-3">
+                        <label for="postPhotoInput" class="px-3.5 py-2 rounded-lg border border-slate-300 bg-slate-50 hover:bg-slate-100 text-xs font-bold text-slate-700 cursor-pointer transition">
+                            <i class="fa-solid fa-image mr-1.5 text-slovakia-blue"></i>Vybrať fotku
+                        </label>
+                        <button type="button" id="clearPostPhotoBtn" onclick="clearPostPhoto()" class="text-xs text-red-600 font-semibold hover:underline hidden">Odstrániť fotku</button>
+                        <span id="postPhotoName" class="text-xs text-slate-400 truncate">Žiadna fotka</span>
+                    </div>
+                    <input type="file" id="postPhotoInput" accept="image/*" onchange="handlePostPhotoSelect(event)" class="hidden">
+                    <div id="postPhotoPreviewWrap" class="mt-2.5 hidden">
+                        <img id="postPhotoPreviewImg" src="" alt="Náhľad fotky" class="w-full max-h-48 object-cover rounded-xl border border-slate-200">
+                    </div>
+                </div>
+                <div class="flex justify-end gap-2 pt-1">
+                    <button type="button" onclick="closePostModal()" class="px-4 py-2.5 rounded-lg border border-slate-300 text-sm font-semibold text-slate-600 hover:bg-slate-50">Zrušiť</button>
+                    <button type="submit" id="postModalSubmitBtn" class="bg-slovakia-blue text-white px-6 py-2.5 rounded-lg text-sm font-bold hover:bg-opacity-90 transition">Uverejniť</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- REPORT ABUSE MODAL (NAHLASOVANIE ZA NEVHODNÉ CHOVANIE) -->
+    <div id="reportModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 relative shadow-2xl">
+            <button type="button" onclick="closeReportModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            <h3 class="text-xl font-bold text-slovakia-red mb-1"><i class="fa-solid fa-flag mr-2"></i>Nahlásiť nevhodné chovanie</h3>
+            <p class="text-xs text-slate-500 mb-4">Hlásenie sa uloží správcovi na posúdenie.</p>
+            <form onsubmit="submitReportModal(event)" class="space-y-4">
+                <input type="hidden" id="reportTargetUid" value="">
+                <input type="hidden" id="reportTargetNick" value="">
+                <input type="hidden" id="reportContextText" value="">
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Nahlasovaný používateľ</label>
+                    <div id="reportTargetDisplay" class="px-3.5 py-2 rounded-lg bg-slate-100 text-sm font-bold text-slovakia-blue">—</div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Dôvod nahlásenia</label>
+                    <select id="reportReasonSelect" class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-slovakia-red focus:outline-none text-sm bg-white">
+                        <option value="Obťažovanie alebo urážky">Obťažovanie alebo urážky</option>
+                        <option value="Spam alebo reklama">Spam alebo reklama</option>
+                        <option value="Nevhodný alebo nelegálny obsah">Nevhodný alebo nelegálny obsah</option>
+                        <option value="Podozrivý inzerát / podvod">Podozrivý inzerát / podvod</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Podrobnosti (voliteľné)</label>
+                    <textarea id="reportDetailsInput" rows="3" maxlength="300" placeholder="Opíš stručne, čo sa stalo..." class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-slovakia-red focus:outline-none text-sm"></textarea>
+                </div>
+                <div class="flex justify-end gap-2">
+                    <button type="button" onclick="closeReportModal()" class="px-4 py-2.5 rounded-lg border border-slate-300 text-sm font-semibold text-slate-600 hover:bg-slate-50">Zrušiť</button>
+                    <button type="submit" id="reportSubmitBtn" class="bg-slovakia-red text-white px-5 py-2.5 rounded-lg text-sm font-bold hover:bg-opacity-90 transition">Odoslať hlásenie</button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -1116,6 +1192,7 @@
                             ${getGenderBadge(m.gender, m.age)}
                             ${m.role === 'ADMIN' ? '<span class="bg-red-600 text-white text-[10px] px-1.5 py-0.2 rounded font-bold">ADMIN</span>' : ''}
                             <span class="text-xs text-slate-400">${m.time || ''}</span>
+                            ${currentUser && targetUid && targetUid !== currentUser.uid ? `<button type="button" onclick="openReportModal('${targetUid}', '${String(m.nick || 'Člen').replace(/'/g, "&#39;")}', '${String(m.text || '').replace(/'/g, "&#39;")}')" title="Nahlásiť správu" class="text-slate-300 hover:text-slovakia-red text-xs ml-auto transition"><i class="fa-regular fa-flag"></i></button>` : ''}
                         </div>
                         <p class="text-sm text-slate-700 mt-0.5 break-words">${m.text}</p>
                     </div>
@@ -1125,6 +1202,40 @@
             if (forceBottom || shouldForceScrollToBottom || wasNearBottom) {
                 shouldForceScrollToBottom = false;
                 scrollChatToBottom(true);
+            }
+        }
+
+        let lastTypingWriteMs = 0;
+        window.handleChatTypingInput = async function() {
+            if (!currentUser) return;
+            const now = Date.now();
+            if (now - lastTypingWriteMs < 2500) return;
+            lastTypingWriteMs = now;
+            try {
+                await updateDoc(doc(db, "users", currentUser.uid), {
+                    typingInRoom: currentRoom,
+                    typingAtMs: now,
+                    lastActiveMs: now
+                });
+            } catch (e) {}
+        };
+
+        function renderTypingIndicator() {
+            const indicatorEl = document.getElementById('roomTypingIndicator');
+            if (!indicatorEl) return;
+            const now = Date.now();
+            const typers = getOnlineUsers().filter(u =>
+                currentUser && u.uid !== currentUser.uid &&
+                u.typingInRoom === currentRoom &&
+                u.typingAtMs && (now - u.typingAtMs < 5000)
+            );
+            if (typers.length === 0) {
+                indicatorEl.innerHTML = '';
+                indicatorEl.classList.add('hidden');
+            } else {
+                const names = typers.map(u => u.nick).join(', ');
+                indicatorEl.innerHTML = `<span class="inline-flex items-center gap-1.5"><span class="w-1.5 h-1.5 bg-slovakia-blue rounded-full animate-bounce"></span><span><strong>${names}</strong> ${typers.length > 1 ? 'píšu' : 'píše'}...</span></span>`;
+                indicatorEl.classList.remove('hidden');
             }
         }
 
@@ -1224,6 +1335,8 @@
                 list.innerHTML = `<div class="p-4 text-center text-xs text-slate-400">V tejto miestnosti nie je nikto ďalší.</div>`;
                 return;
             }
+
+            renderTypingIndicator();
 
             list.innerHTML = inThisRoomList.map(u => {
                 const isMe = currentUser && u.uid === currentUser.uid;
@@ -1449,6 +1562,7 @@
                         partnerUid,
                         partnerNick: partnerNick || 'Člen',
                         lastMessage: m.text,
+                        lastPostRef: m.postRef || null,
                         lastTime: m.time || '',
                         lastMs: m.createdAtMs || 0,
                         unread: 0
@@ -1456,6 +1570,7 @@
                 }
                 if ((m.createdAtMs || 0) >= threadsMap[partnerUid].lastMs) {
                     threadsMap[partnerUid].lastMessage = m.text;
+                    threadsMap[partnerUid].lastPostRef = m.postRef || null;
                     threadsMap[partnerUid].lastTime = m.time || '';
                     threadsMap[partnerUid].lastMs = m.createdAtMs || 0;
                     if (partnerNick) threadsMap[partnerUid].partnerNick = partnerNick;
@@ -1480,6 +1595,7 @@
                         <div class="w-9 h-9 rounded-full bg-slovakia-blue text-white flex-shrink-0 flex items-center justify-center font-bold text-xs">${t.partnerNick.charAt(0).toUpperCase()}</div>
                         <div class="overflow-hidden">
                             <div class="font-bold text-sm text-slovakia-blue truncate">${t.partnerNick}</div>
+                            ${t.lastPostRef && t.lastPostRef.title ? `<div class="text-[10px] font-bold text-slovakia-red truncate">${t.lastPostRef.type === 'bazar' ? '🏷️ Bazár: ' : '🚗 Spolujazda: '}${t.lastPostRef.title}</div>` : ''}
                             <p class="text-xs text-slate-500 truncate">${t.lastMessage}</p>
                         </div>
                     </div>
@@ -1618,25 +1734,143 @@
             });
         }
 
+        let pendingPostPhotoData = "";
+
+        function clearPostPhoto() {
+            pendingPostPhotoData = "";
+            const input = document.getElementById('postPhotoInput');
+            const previewWrap = document.getElementById('postPhotoPreviewWrap');
+            const previewImg = document.getElementById('postPhotoPreviewImg');
+            const clearBtn = document.getElementById('clearPostPhotoBtn');
+            const nameEl = document.getElementById('postPhotoName');
+            if (input) input.value = "";
+            if (previewImg) previewImg.src = "";
+            if (previewWrap) previewWrap.classList.add('hidden');
+            if (clearBtn) clearBtn.classList.add('hidden');
+            if (nameEl) nameEl.innerText = "Žiadna fotka";
+        }
+        window.clearPostPhoto = clearPostPhoto;
+
+        window.handlePostPhotoSelect = function(e) {
+            const file = e.target.files && e.target.files[0];
+            if (!file) return;
+            if (!file.type.startsWith('image/')) {
+                alert("Vyber prosím obrázok (JPG, PNG, WebP).");
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                const img = new Image();
+                img.onload = function() {
+                    const maxDim = 640;
+                    let w = img.width;
+                    let h = img.height;
+                    if (w > h) {
+                        if (w > maxDim) { h = Math.round(h * maxDim / w); w = maxDim; }
+                    } else {
+                        if (h > maxDim) { w = Math.round(w * maxDim / h); h = maxDim; }
+                    }
+                    const canvas = document.createElement('canvas');
+                    canvas.width = w;
+                    canvas.height = h;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, w, h);
+                    pendingPostPhotoData = canvas.toDataURL('image/jpeg', 0.78);
+                    const previewWrap = document.getElementById('postPhotoPreviewWrap');
+                    const previewImg = document.getElementById('postPhotoPreviewImg');
+                    const clearBtn = document.getElementById('clearPostPhotoBtn');
+                    const nameEl = document.getElementById('postPhotoName');
+                    if (previewImg) previewImg.src = pendingPostPhotoData;
+                    if (previewWrap) previewWrap.classList.remove('hidden');
+                    if (clearBtn) clearBtn.classList.remove('hidden');
+                    if (nameEl) nameEl.innerText = file.name;
+                };
+                img.src = evt.target.result;
+            };
+            reader.readAsDataURL(file);
+        };
+
+        window.openAddPostModal = function(type) {
+            if (!currentUser) return;
+            document.getElementById('postModalType').value = type || 'bazar';
+            document.getElementById('postModalTitle').innerText = type === 'bazar' ? 'Pridať inzerát do Bazára' : 'Pridať ponuku Spolujazdy';
+            document.getElementById('postModalSub').innerText = type === 'bazar'
+                ? 'Môžeš pridať názov, popis aj fotku ponúkanej veci.'
+                : 'Zadaj trasu, dátum/čas alebo dôležité info pre spolucestujúcich.';
+            document.getElementById('postTitleInput').value = '';
+            document.getElementById('postDescInput').value = '';
+            clearPostPhoto();
+            document.getElementById('postModal').classList.remove('hidden');
+        };
+
+        window.closePostModal = function() {
+            document.getElementById('postModal').classList.add('hidden');
+        };
+
+        window.submitPostModal = async function(e) {
+            e.preventDefault();
+            if (!currentUser) return;
+            const type = document.getElementById('postModalType').value || 'bazar';
+            const title = document.getElementById('postTitleInput').value.trim();
+            const desc = document.getElementById('postDescInput').value.trim();
+            const btn = document.getElementById('postModalSubmitBtn');
+            if (!title || !desc) return;
+
+            btn.disabled = true;
+            btn.innerText = "Ukladám...";
+            try {
+                const payload = {
+                    type: type,
+                    title: title,
+                    desc: desc,
+                    author: currentUser.nick,
+                    authorUid: currentUser.uid,
+                    contact: "RP",
+                    createdAtMs: Date.now(),
+                    timestamp: serverTimestamp()
+                };
+                if (pendingPostPhotoData) {
+                    payload.photoData = pendingPostPhotoData;
+                }
+                await addDoc(collection(db, "community_posts"), payload);
+                closePostModal();
+            } catch (err) {
+                console.error("Chyba pri ukladaní príspevku:", err);
+                alert("Nepodarilo sa uložiť príspevok do Firestore.");
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Uverejniť";
+            }
+        };
+
         function renderPostCard(p) {
             const canDelete = currentUser && ((p.authorUid && p.authorUid === currentUser.uid) || currentUser.email === ADMIN_EMAIL);
             const deleteBtn = canDelete && p.id
-                ? `<button onclick="deleteCommunityPost('${p.id}')" title="Zmazať príspevok" class="text-slate-400 hover:text-red-600 text-xs ml-2 transition"><i class="fa-solid fa-trash"></i></button>`
+                ? `<button onclick="deleteCommunityPost('${p.id}')" title="Zmazať príspevok" class="text-slate-400 hover:text-red-600 text-xs ml-1.5 transition"><i class="fa-solid fa-trash"></i></button>`
                 : '';
             const safeTitle = String(p.title || '').replace(/'/g, "&#39;").replace(/"/g, "&quot;");
             const safeDesc = String(p.desc || '').replace(/'/g, "&#39;").replace(/"/g, "&quot;");
+            const safeAuthor = String(p.author || 'Člen').replace(/'/g, "&#39;");
             const safeType = String(p.type || 'spolujazda').replace(/'/g, "&#39;");
+            const reportBtn = currentUser && p.authorUid && p.authorUid !== currentUser.uid
+                ? `<button type="button" onclick="openReportModal('${p.authorUid}', '${safeAuthor}', '${safeType}: ${safeTitle}')" title="Nahlásiť príspevok" class="text-slate-300 hover:text-slovakia-red text-xs ml-1.5 transition"><i class="fa-regular fa-flag"></i></button>`
+                : '';
             const rpAction = currentUser && p.authorUid && p.authorUid !== currentUser.uid
-                ? `<button onclick="openRpToUser('${p.authorUid}', '${p.author}', { type: '${safeType}', title: '${safeTitle}', desc: '${safeDesc}' })" class="text-slovakia-red hover:underline font-bold">Kontakt: RP</button>`
+                ? `<button onclick="openRpToUser('${p.authorUid}', '${safeAuthor}', { type: '${safeType}', title: '${safeTitle}', desc: '${safeDesc}' })" class="text-slovakia-red hover:underline font-bold">Kontakt: RP</button>`
                 : `<span class="text-slovakia-red font-bold">Kontakt: ${p.contact || 'RP'}</span>`;
+
+            const photoHtml = p.photoData
+                ? `<div class="mt-2 rounded-lg overflow-hidden border border-slate-200 bg-slate-50"><img src="${p.photoData}" alt="${safeTitle}" class="w-full max-h-52 object-cover"></div>`
+                : '';
 
             return `
                 <div class="bg-white p-3 rounded-lg border text-sm shadow-sm">
                     <div class="flex items-start justify-between gap-2">
                         <div class="font-bold text-slovakia-blue">${p.title}</div>
-                        ${deleteBtn}
+                        <div class="flex items-center flex-shrink-0">${reportBtn}${deleteBtn}</div>
                     </div>
                     <p class="text-xs text-slate-600 mt-1 whitespace-pre-wrap">${p.desc}</p>
+                    ${photoHtml}
                     <div class="flex justify-between items-center mt-2 pt-2 border-t border-slate-100 text-xs text-slate-400">
                         <span>Od: <strong class="text-slate-600">${p.author}</strong></span>
                         ${rpAction}
@@ -1658,30 +1892,6 @@
                 ? postsDB.bazar.map(renderPostCard).join('')
                 : `<div class="p-4 text-center text-xs text-slate-400 bg-white rounded-lg border border-dashed">Zatiaľ tu nie sú žiadne inzeráty.</div>`;
         }
-
-        window.openAddPostModal = async function(type) {
-            if (!currentUser) return;
-            const title = prompt("Zadajte názov ponuky/inzerátu:");
-            if (!title || !title.trim()) return;
-            const desc = prompt("Zadajte popis:");
-            if (!desc || !desc.trim()) return;
-
-            try {
-                await addDoc(collection(db, "community_posts"), {
-                    type: type,
-                    title: title.trim(),
-                    desc: desc.trim(),
-                    author: currentUser.nick,
-                    authorUid: currentUser.uid,
-                    contact: "RP",
-                    createdAtMs: Date.now(),
-                    timestamp: serverTimestamp()
-                });
-            } catch (err) {
-                console.error("Chyba pri ukladaní príspevku:", err);
-                alert("Nepodarilo sa uložiť príspevok do Firestore.");
-            }
-        };
 
         window.deleteCommunityPost = async function(postId) {
             if (!currentUser || !postId) return;
@@ -1946,10 +2156,16 @@
                 bioWrap.classList.add('hidden');
             }
 
+            const safePubNick = String(u.nick || 'Člen').replace(/'/g, "&#39;");
             document.getElementById('pubActionArea').innerHTML = `
-                <button onclick="closePublicProfileModal(); openRpToUser('${u.uid}', '${u.nick}')" class="w-full bg-slovakia-blue text-white py-2.5 rounded-lg text-sm font-bold hover:bg-opacity-90 transition shadow">
-                    <i class="fa-solid fa-paper-plane mr-2"></i>Poslať súkromnú správu (RP)
-                </button>
+                <div class="space-y-2">
+                    <button onclick="closePublicProfileModal(); openRpToUser('${u.uid}', '${safePubNick}')" class="w-full bg-slovakia-blue text-white py-2.5 rounded-lg text-sm font-bold hover:bg-opacity-90 transition shadow">
+                        <i class="fa-solid fa-paper-plane mr-2"></i>Poslať súkromnú správu (RP)
+                    </button>
+                    <button type="button" onclick="closePublicProfileModal(); openReportModal('${u.uid}', '${safePubNick}', 'Profil používateľa')" class="w-full border border-red-200 bg-red-50 text-slovakia-red py-2 rounded-lg text-xs font-bold hover:bg-red-100 transition">
+                        <i class="fa-regular fa-flag mr-1.5"></i>Nahlásiť nevhodné chovanie
+                    </button>
+                </div>
             `;
             document.getElementById('publicProfileModal').classList.remove('hidden');
         };
@@ -1957,6 +2173,58 @@
         window.closePublicProfileModal = function() {
             document.getElementById('publicProfileModal').classList.add('hidden');
         };
+        // ================= NAHLASOVANIE NEVHODNÉHO CHOVANIA =================
+        window.openReportModal = function(targetUid, targetNick, contextText = '') {
+            if (!currentUser) return;
+            if (targetUid === currentUser.uid) return;
+            document.getElementById('reportTargetUid').value = targetUid || '';
+            document.getElementById('reportTargetNick').value = targetNick || 'Člen';
+            document.getElementById('reportContextText').value = contextText || '';
+            document.getElementById('reportTargetDisplay').innerText = `${targetNick || 'Člen'}${contextText ? ` (${contextText})` : ''}`;
+            document.getElementById('reportReasonSelect').selectedIndex = 0;
+            document.getElementById('reportDetailsInput').value = '';
+            document.getElementById('reportModal').classList.remove('hidden');
+        };
+
+        window.closeReportModal = function() {
+            document.getElementById('reportModal').classList.add('hidden');
+        };
+
+        window.submitReportModal = async function(e) {
+            e.preventDefault();
+            if (!currentUser) return;
+            const targetUid = document.getElementById('reportTargetUid').value;
+            const targetNick = document.getElementById('reportTargetNick').value;
+            const contextText = document.getElementById('reportContextText').value;
+            const reason = document.getElementById('reportReasonSelect').value;
+            const details = document.getElementById('reportDetailsInput').value.trim();
+            const btn = document.getElementById('reportSubmitBtn');
+
+            btn.disabled = true;
+            btn.innerText = "Odosielam...";
+            try {
+                await addDoc(collection(db, "reports"), {
+                    reporterUid: currentUser.uid,
+                    reporterNick: currentUser.nick,
+                    targetUid: targetUid,
+                    targetNick: targetNick,
+                    context: contextText,
+                    reason: reason,
+                    details: details,
+                    createdAtMs: Date.now(),
+                    timestamp: serverTimestamp()
+                });
+                closeReportModal();
+                alert("Hlásenie bolo odoslané správcovi. Ďakujeme.");
+            } catch (err) {
+                console.error("Chyba pri odosielaní hlásenia:", err);
+                alert("Nepodarilo sa odoslať hlásenie.");
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Odoslať hlásenie";
+            }
+        };
+
         // ================= MOBILNÉ MENU A ŠUFLÍKY =================
         window.closeAllMobileDrawers = function() {
             const backdrop = document.getElementById('mobileDrawerBackdrop');
