@@ -128,9 +128,34 @@
         <main class="flex-1 min-h-0 max-w-7xl w-full mx-auto p-4 flex gap-4 overflow-hidden">
             
             <!-- SECTION: CHAT (Default) -->
-            <div id="sectionChat" class="flex-1 min-h-0 flex gap-4 overflow-hidden">
+            <div id="sectionChat" class="flex-1 min-h-0 flex flex-col md:flex-row gap-3 md:gap-4 overflow-hidden relative">
+                <!-- Mobile Chat Quick Bar (< md) -->
+                <div class="flex md:hidden items-center justify-between gap-2 bg-white px-3 py-2 rounded-xl border border-slate-200 shadow-sm flex-shrink-0">
+                    <button type="button" onclick="toggleMobileDrawer('rooms')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-blue-50 text-slovakia-blue font-bold text-xs flex items-center justify-center gap-1.5">
+                        <i class="fa-solid fa-door-open"></i>
+                        <span>Miestnosti</span>
+                    </button>
+                    <button type="button" onclick="toggleMobileDrawer('users')" class="flex-1 py-1.5 px-2.5 rounded-lg bg-slate-100 text-slate-700 font-bold text-xs flex items-center justify-center gap-1.5">
+                        <i class="fa-solid fa-users"></i>
+                        <span>V miestnosti</span>
+                        <span id="mobileActiveUsersCount" class="bg-slovakia-blue text-white text-[10px] px-1.5 py-0.2 rounded-full">0</span>
+                    </button>
+                    <button type="button" onclick="toggleMobileDrawer('nav')" class="py-1.5 px-3 rounded-lg bg-slovakia-red text-white font-bold text-xs flex items-center justify-center gap-1 relative">
+                        <i class="fa-solid fa-bars"></i>
+                        <span>Menu</span>
+                        <span id="mobileUnreadRpDot" class="hidden w-2 h-2 bg-amber-300 rounded-full"></span>
+                    </button>
+                </div>
+
+                <!-- Mobile Drawer Backdrop -->
+                <div id="mobileDrawerBackdrop" onclick="closeAllMobileDrawers()" class="fixed inset-0 bg-black/50 z-40 hidden md:hidden"></div>
+
                 <!-- Left Rooms Menu -->
-                <div class="w-64 bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex flex-col overflow-y-auto flex-shrink-0">
+                <div id="mobileRoomsDrawer" class="hidden md:flex fixed md:static inset-y-0 left-0 z-50 w-72 md:w-64 bg-white md:rounded-xl shadow-xl md:shadow-sm border-r md:border border-slate-200 p-4 flex-col overflow-y-auto flex-shrink-0">
+                    <div class="flex items-center justify-between md:hidden pb-3 mb-3 border-b border-slate-200">
+                        <span class="font-black text-slovakia-blue text-sm uppercase tracking-wider">Vyber miestnosť</span>
+                        <button type="button" onclick="closeAllMobileDrawers()" class="text-slate-400 hover:text-slate-700 p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
+                    </div>
                     <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Hlavné miestnosti</h2>
                     <div class="space-y-1 mb-6" id="mainRoomsList">
                         <button data-room="Hlavná sála" onclick="changeRoom('Hlavná sála')" class="room-btn w-full text-left px-3 py-2 rounded-lg text-sm font-medium bg-blue-50 text-slovakia-blue flex items-center justify-between"><span><i class="fa-solid fa-fire mr-2 text-slovakia-red"></i>Hlavná sála</span><span class="text-xs bg-slovakia-blue text-white px-2 py-0.5 rounded-full" id="count-Hlavná sála">0</span></button>
@@ -156,7 +181,7 @@
 
                 <!-- Chat Box Center -->
                 <div class="flex-1 min-w-0 min-h-0 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col overflow-hidden">
-                    <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+                    <div class="px-3.5 md:px-6 py-2.5 md:py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50 flex-shrink-0">
                         <div>
                             <div class="flex items-center space-x-2">
                                 <h2 id="currentRoomTitle" class="text-lg font-bold text-slovakia-blue">Hlavná sála</h2>
@@ -186,14 +211,18 @@
                     </div>
 
                     <!-- Input form -->
-                    <form onsubmit="sendChatMessage(event)" class="p-4 bg-white border-t border-slate-200 flex gap-2">
-                        <input type="text" id="chatInput" placeholder="Napíš správu do miestnosti..." class="flex-1 px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-slovakia-blue focus:outline-none text-sm">
-                        <button type="submit" class="bg-slovakia-blue text-white px-6 py-3 rounded-lg font-bold hover:bg-opacity-90 transition flex items-center space-x-2"><span>Poslať</span><i class="fa-solid fa-paper-plane"></i></button>
+                    <form onsubmit="sendChatMessage(event)" class="p-2.5 md:p-4 bg-white border-t border-slate-200 flex gap-2 flex-shrink-0">
+                        <input type="text" id="chatInput" placeholder="Napíš správu..." class="flex-1 min-w-0 px-3.5 md:px-4 py-2.5 md:py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-slovakia-blue focus:outline-none text-sm">
+                        <button type="submit" class="bg-slovakia-blue text-white px-4 md:px-6 py-2.5 md:py-3 rounded-lg font-bold hover:bg-opacity-90 transition flex items-center space-x-1.5 md:space-x-2 flex-shrink-0 text-sm"><span class="hidden sm:inline">Poslať</span><i class="fa-solid fa-paper-plane"></i></button>
                     </form>
                 </div>
 
                 <!-- Right Users Sidebar -->
-                <div class="w-64 bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex flex-col overflow-y-auto flex-shrink-0">
+                <div id="mobileUsersDrawer" class="hidden md:flex fixed md:static inset-y-0 right-0 z-50 w-72 md:w-64 bg-white md:rounded-xl shadow-xl md:shadow-sm border-l md:border border-slate-200 p-4 flex-col overflow-y-auto flex-shrink-0">
+                    <div class="flex items-center justify-between md:hidden pb-3 mb-3 border-b border-slate-200">
+                        <span class="font-black text-slovakia-blue text-sm uppercase tracking-wider">Ľudia v miestnosti</span>
+                        <button type="button" onclick="closeAllMobileDrawers()" class="text-slate-400 hover:text-slate-700 p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
+                    </div>
                     <div class="flex items-center justify-between mb-4">
                         <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">V miestnosti</h3>
                         <span id="activeUsersCount" class="text-xs bg-blue-100 text-slovakia-blue font-bold px-2 py-0.5 rounded-full">0</span>
@@ -205,7 +234,7 @@
             </div>
 
             <!-- SECTION: STRETKO -->
-            <div id="sectionStretko" class="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 p-6 hidden">
+            <div id="sectionStretko" class="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 p-4 md:p-6 hidden overflow-y-auto">
                 <div class="flex justify-between items-center mb-6">
                     <div>
                         <h2 class="text-2xl font-bold text-slovakia-blue">Stretko (Zoznamka a priatelia)</h2>
@@ -249,9 +278,9 @@
             </div>
 
             <!-- SECTION: PRIVATE MESSAGES (RP) -->
-            <div id="sectionMessages" class="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 flex overflow-hidden hidden" style="min-height: 550px;">
+            <div id="sectionMessages" class="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col md:flex-row overflow-y-auto md:overflow-hidden hidden">
                 <!-- Left: Conversations / Contacts -->
-                <div class="w-72 border-r border-slate-200 bg-slate-50 flex flex-col">
+                <div class="w-full md:w-72 border-b md:border-b-0 md:border-r border-slate-200 bg-slate-50 flex flex-col max-h-48 md:max-h-none flex-shrink-0">
                     <div class="p-4 border-b border-slate-200 flex justify-between items-center bg-white">
                         <h2 class="font-bold text-slovakia-blue text-base"><i class="fa-solid fa-envelope-open-text mr-2 text-slovakia-red"></i>Rýchla pošta (RP)</h2>
                         <button onclick="openNewRpModal()" class="text-xs bg-slovakia-blue text-white px-2.5 py-1.5 rounded font-bold hover:bg-opacity-90">+ Nová</button>
@@ -298,7 +327,7 @@
             </div>
 
             <!-- SECTION: ADMIN PANEL (VÝHRADNE PRE TVOJ E-MAIL) -->
-            <div id="sectionAdmin" class="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 p-6 hidden flex-col">
+            <div id="sectionAdmin" class="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 p-4 md:p-6 hidden flex-col overflow-y-auto">
                 <div class="flex items-center justify-between mb-6 pb-4 border-b">
                     <div>
                         <h2 class="text-2xl font-black text-slovakia-red flex items-center"><i class="fa-solid fa-shield-halved mr-3"></i>Správcovský Admin Panel</h2>
@@ -444,6 +473,45 @@
                 </div>
             </div>
             <div id="pubActionArea"></div>
+        </div>
+    </div>
+
+    <!-- MOBILE NAVIGATION DRAWER (< md) -->
+    <div id="mobileNavDrawer" class="fixed inset-y-0 right-0 w-72 bg-slovakia-blue text-white z-50 p-5 shadow-2xl transform transition-transform hidden md:hidden flex-col justify-between overflow-y-auto">
+        <div>
+            <div class="flex items-center justify-between pb-4 mb-4 border-b border-blue-800">
+                <span class="font-black tracking-wider text-lg">T.CKA <span class="text-red-500 text-xs px-2 py-0.5 bg-white rounded-full ml-1 font-bold">SK</span></span>
+                <button type="button" onclick="closeAllMobileDrawers()" class="text-blue-200 hover:text-white p-1"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            <div class="space-y-1.5">
+                <button type="button" onclick="mobileNavSelect('chat')" class="w-full text-left px-4 py-3 rounded-xl bg-blue-900/90 hover:bg-blue-800 text-sm font-bold flex items-center">
+                    <i class="fa-solid fa-comments w-6 text-blue-300"></i>Miestnosti
+                </button>
+                <button type="button" onclick="mobileNavSelect('stretko')" class="w-full text-left px-4 py-3 rounded-xl hover:bg-blue-900 text-sm font-bold flex items-center">
+                    <i class="fa-solid fa-heart w-6 text-pink-400"></i>Stretko
+                </button>
+                <button type="button" onclick="mobileNavSelect('community')" class="w-full text-left px-4 py-3 rounded-xl hover:bg-blue-900 text-sm font-bold flex items-center">
+                    <i class="fa-solid fa-earth-europe w-6 text-emerald-400"></i>Spolujazda & Bazár
+                </button>
+                <button type="button" onclick="mobileNavSelect('messages')" class="w-full text-left px-4 py-3 rounded-xl hover:bg-blue-900 text-sm font-bold flex items-center justify-between">
+                    <span><i class="fa-solid fa-envelope w-6 text-amber-300"></i>Správy (RP)</span>
+                    <span id="mobileUnreadRpBadge" class="bg-red-600 text-white text-[10px] px-2 py-0.5 rounded-full font-black hidden">0</span>
+                </button>
+                <button type="button" onclick="mobileNavSelect('quiz')" class="w-full text-left px-4 py-3 rounded-xl hover:bg-blue-900 text-sm font-bold flex items-center">
+                    <i class="fa-solid fa-brain w-6 text-purple-300"></i>Slovenský Kvíz
+                </button>
+                <button type="button" id="mobileNavAdminBtn" onclick="mobileNavSelect('admin')" class="w-full text-left px-4 py-3 rounded-xl bg-red-600 hover:bg-red-700 text-sm font-bold flex items-center hidden">
+                    <i class="fa-solid fa-shield-halved w-6 text-white"></i>Admin Panel
+                </button>
+            </div>
+        </div>
+        <div class="pt-4 border-t border-blue-800 space-y-2">
+            <button type="button" onclick="closeAllMobileDrawers(); openProfileModal();" class="w-full py-2.5 px-3 rounded-xl bg-blue-900 hover:bg-blue-800 text-xs font-bold flex items-center justify-center gap-2">
+                <i class="fa-solid fa-user-pen"></i><span>Upraviť môj profil</span>
+            </button>
+            <button type="button" onclick="closeAllMobileDrawers(); handleLogout();" class="w-full py-2.5 px-3 rounded-xl bg-red-600/90 hover:bg-red-600 text-xs font-bold flex items-center justify-center gap-2">
+                <i class="fa-solid fa-right-from-bracket"></i><span>Odhlásiť sa</span>
+            </button>
         </div>
     </div>
 
@@ -980,6 +1048,7 @@
                 }
             }
 
+            closeAllMobileDrawers();
             loadRoomMessages();
         };
 
@@ -1141,6 +1210,8 @@
 
             // 4. Zobraziť IBA používateľov, ktorí sú v tejto konkrétnej miestnosti, v pravom paneli
             countEl.innerText = inThisRoomList.length;
+            const mobCountEl = document.getElementById('mobileActiveUsersCount');
+            if (mobCountEl) mobCountEl.innerText = inThisRoomList.length;
 
             if (inThisRoomList.length === 0) {
                 list.innerHTML = `<div class="p-4 text-center text-xs text-slate-400">V tejto miestnosti nie je nikto ďalší.</div>`;
@@ -1317,12 +1388,27 @@
             if (!currentUser) return;
             const unreadCount = privateMessagesDB.filter(m => m.toUid === currentUser.uid && !m.read).length;
             const badge = document.getElementById('unreadRpBadge');
-            if (!badge) return;
-            if (unreadCount > 0) {
-                badge.innerText = unreadCount;
-                badge.classList.remove('hidden');
-            } else {
-                badge.classList.add('hidden');
+            const mobBadge = document.getElementById('mobileUnreadRpBadge');
+            const mobDot = document.getElementById('mobileUnreadRpDot');
+            if (badge) {
+                if (unreadCount > 0) {
+                    badge.innerText = unreadCount;
+                    badge.classList.remove('hidden');
+                } else {
+                    badge.classList.add('hidden');
+                }
+            }
+            if (mobBadge) {
+                if (unreadCount > 0) {
+                    mobBadge.innerText = unreadCount;
+                    mobBadge.classList.remove('hidden');
+                } else {
+                    mobBadge.classList.add('hidden');
+                }
+            }
+            if (mobDot) {
+                if (unreadCount > 0) mobDot.classList.remove('hidden');
+                else mobDot.classList.add('hidden');
             }
         }
 
@@ -1777,6 +1863,54 @@
         window.closePublicProfileModal = function() {
             document.getElementById('publicProfileModal').classList.add('hidden');
         };
+        // ================= MOBILNÉ MENU A ŠUFLÍKY =================
+        window.closeAllMobileDrawers = function() {
+            const backdrop = document.getElementById('mobileDrawerBackdrop');
+            const roomsD = document.getElementById('mobileRoomsDrawer');
+            const usersD = document.getElementById('mobileUsersDrawer');
+            const navD = document.getElementById('mobileNavDrawer');
+            if (backdrop) backdrop.classList.add('hidden');
+            if (roomsD) { roomsD.classList.add('hidden'); roomsD.classList.remove('flex'); }
+            if (usersD) { usersD.classList.add('hidden'); usersD.classList.remove('flex'); }
+            if (navD) { navD.classList.add('hidden'); navD.classList.remove('flex'); }
+        };
+
+        window.toggleMobileDrawer = function(which) {
+            const backdrop = document.getElementById('mobileDrawerBackdrop');
+            const roomsD = document.getElementById('mobileRoomsDrawer');
+            const usersD = document.getElementById('mobileUsersDrawer');
+            const navD = document.getElementById('mobileNavDrawer');
+
+            const isAlreadyOpen =
+                (which === 'rooms' && roomsD && !roomsD.classList.contains('hidden')) ||
+                (which === 'users' && usersD && !usersD.classList.contains('hidden')) ||
+                (which === 'nav' && navD && !navD.classList.contains('hidden'));
+
+            closeAllMobileDrawers();
+            if (isAlreadyOpen) return;
+
+            if (backdrop) backdrop.classList.remove('hidden');
+            if (which === 'rooms' && roomsD) {
+                roomsD.classList.remove('hidden');
+                roomsD.classList.add('flex');
+            } else if (which === 'users' && usersD) {
+                usersD.classList.remove('hidden');
+                usersD.classList.add('flex');
+            } else if (which === 'nav' && navD) {
+                if (currentUser && currentUser.email === ADMIN_EMAIL) {
+                    const mAdmin = document.getElementById('mobileNavAdminBtn');
+                    if (mAdmin) mAdmin.classList.remove('hidden');
+                }
+                navD.classList.remove('hidden');
+                navD.classList.add('flex');
+            }
+        };
+
+        window.mobileNavSelect = function(sec) {
+            closeAllMobileDrawers();
+            switchSection(sec);
+        };
+
     </script>
 </body>
 </html>
