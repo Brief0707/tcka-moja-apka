@@ -846,11 +846,13 @@
 
         function getOnlineUsers() {
             const now = Date.now();
-            // Používateľ je aktívny, ak je online !== false a bol aktívny za posledné 2 minúty (alebo je to aktuálny používateľ)
             return usersDB.filter(u => {
                 if (currentUser && u.uid === currentUser.uid) return true;
                 if (u.online === false) return false;
-                if (u.lastActiveMs && (now - u.lastActiveMs > 120000)) return false;
+                const activeMs = u.lastActiveMs || (u.lastActive && u.lastActive.toMillis ? u.lastActive.toMillis() : 0);
+                // Ak nemá žiadny timestamp aktivity (napr. starý záznam vo Firestore), nepovažujeme ho za aktívneho
+                if (!activeMs) return false;
+                if (now - activeMs > 120000) return false;
                 return true;
             });
         }
