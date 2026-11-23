@@ -1446,14 +1446,22 @@
 
         window.openRpToUser = function(targetUid, targetNick, postContext = null) {
             if (!currentUser) return;
-            if (targetUid === currentUser.uid) return;
+            if (!targetUid || targetUid === currentUser.uid) return;
 
             pendingRpPostContext = postContext;
             activeRpPartnerUid = targetUid;
             switchSection('messages');
-            renderRpConversation(targetUid);
 
+            const titleEl = document.getElementById('rpActivePartnerNick');
+            const subEl = document.getElementById('rpActivePartnerSub');
+            const formEl = document.getElementById('rpReplyForm');
             const replyInput = document.getElementById('rpReplyInput');
+            const onlineUser = usersDB.find(u => u.uid === targetUid);
+            const resolvedNick = (onlineUser && onlineUser.nick) || targetNick || 'Člen';
+
+            if (titleEl) titleEl.innerText = `Konverzácia s: ${resolvedNick}`;
+            if (subEl) subEl.innerText = onlineUser ? `Online • ${onlineUser.location}` : 'Súkromná pošta (RP)';
+            if (formEl) formEl.classList.remove('hidden');
             if (replyInput) {
                 if (postContext && postContext.title) {
                     const label = postContext.type === 'bazar' ? 'inzerátu' : 'ponuke spolujazdy';
@@ -1461,6 +1469,8 @@
                 }
                 replyInput.focus();
             }
+
+            renderRpConversation(targetUid);
         };
 
         window.openNewRpModal = function(preselectUid = null, preselectNick = null, postContext = null) {
@@ -1889,15 +1899,16 @@
             const deleteBtn = canDelete && p.id
                 ? `<button onclick="deleteCommunityPost('${p.id}')" title="Zmazať príspevok" class="text-slate-400 hover:text-red-600 text-xs ml-1.5 transition"><i class="fa-solid fa-trash"></i></button>`
                 : '';
-            const safeTitle = String(p.title || '').replace(/'/g, "&#39;").replace(/"/g, "&quot;");
-            const safeDesc = String(p.desc || '').replace(/'/g, "&#39;").replace(/"/g, "&quot;");
-            const safeAuthor = String(p.author || 'Člen').replace(/'/g, "&#39;");
-            const safeType = String(p.type || 'spolujazda').replace(/'/g, "&#39;");
-            const reportBtn = currentUser && p.authorUid && p.authorUid !== currentUser.uid
-                ? `<button type="button" onclick="openReportModal('${p.authorUid}', '${safeAuthor}', '${safeType}: ${safeTitle}')" title="Nahlásiť príspevok" class="text-slate-300 hover:text-slovakia-red text-xs ml-1.5 transition"><i class="fa-regular fa-flag"></i></button>`
+            const resolvedAuthorUid = p.authorUid || (usersDB.find(u => u.nick === p.author)?.uid) || '';
+            const safeTitle = String(p.title || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+            const safeDesc = String(p.desc || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+            const safeAuthor = String(p.author || 'Člen').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+            const safeType = String(p.type || 'spolujazda').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+            const reportBtn = currentUser && resolvedAuthorUid && resolvedAuthorUid !== currentUser.uid
+                ? `<button type="button" onclick="openReportModal('${resolvedAuthorUid}', '${safeAuthor}', '${safeType}: ${safeTitle}')" title="Nahlásiť príspevok" class="text-slate-300 hover:text-slovakia-red text-xs ml-1.5 transition"><i class="fa-regular fa-flag"></i></button>`
                 : '';
-            const rpAction = currentUser && p.authorUid && p.authorUid !== currentUser.uid
-                ? `<button onclick="openRpToUser('${p.authorUid}', '${safeAuthor}', { type: '${safeType}', title: '${safeTitle}', desc: '${safeDesc}' })" class="text-slovakia-red hover:underline font-bold">Kontakt: RP</button>`
+            const rpAction = currentUser && resolvedAuthorUid && resolvedAuthorUid !== currentUser.uid
+                ? `<button type="button" onclick="openRpToUser('${resolvedAuthorUid}', '${safeAuthor}', { type: '${safeType}', title: '${safeTitle}', desc: '${safeDesc}' })" class="text-slovakia-red hover:underline font-bold cursor-pointer">Kontakt: RP</button>`
                 : `<span class="text-slovakia-red font-bold">Kontakt: ${p.contact || 'RP'}</span>`;
 
             const photoHtml = p.photoData
