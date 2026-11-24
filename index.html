@@ -1,2887 +1,730 @@
 <!DOCTYPE html>
 <html lang="sk">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>T.cka — Moja Apka</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <style>
-        :root {
-            --slovakia-blue: #0b4ea2;
-            --slovakia-red: #ee1c25;
-        }
-        .bg-slovakia-blue { background-color: var(--slovakia-blue); }
-        .text-slovakia-blue { color: var(--slovakia-blue); }
-        .border-slovakia-blue { border-color: var(--slovakia-blue); }
-        .bg-slovakia-red { background-color: var(--slovakia-red); }
-        .text-slovakia-red { color: var(--slovakia-red); }
-        .border-slovakia-red { border-color: var(--slovakia-red); }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chat — Reakcie v chate & Nahlasovanie (bez reportu admina)</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #1e293b;
+      --panel-2: #0f172a;
+      --border: #334155;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-2: #0284c7;
+      --danger: #ef4444;
+      --danger-hover: #dc2626;
+      --admin-badge: #f59e0b;
+      --ok: #22c55e;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .app {
+      max-width: 980px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 310px;
+      gap: 18px;
+    }
+
+    @media (max-width: 820px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+
+    .card-header {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .card-header h1,
+    .card-header h2 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .pill {
+      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(56, 189, 248, 0.14);
+      color: var(--accent);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+
+    .messages {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-height: 62vh;
+      overflow-y: auto;
+    }
+
+    .msg {
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 14px;
+    }
+
+    .msg-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .author-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .author {
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .badge-admin {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: rgba(245, 158, 11, 0.18);
+      color: var(--admin-badge);
+      border: 1px solid rgba(245, 158, 11, 0.45);
+    }
+
+    .time {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .msg-text {
+      font-size: 14px;
+      line-height: 1.45;
+      margin: 4px 0 10px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .reactions-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+
+    .reaction-chip {
+      border: 1px solid var(--border);
+      background: #1e293b;
+      color: var(--text);
+      border-radius: 999px;
+      padding: 3px 9px;
+      font-size: 13px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: 0.15s ease;
+    }
+
+    .reaction-chip:hover {
+      border-color: var(--accent);
+    }
+
+    .reaction-chip.active {
+      background: rgba(56, 189, 248, 0.2);
+      border-color: var(--accent);
+      color: #e0f2fe;
+      font-weight: 600;
+    }
+
+    .actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+      padding-top: 8px;
+      border-top: 1px dashed rgba(148, 163, 184, 0.2);
+    }
+
+    .emoji-picker {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+
+    .emoji-btn {
+      background: transparent;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      padding: 4px 7px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: 0.15s ease;
+    }
+
+    .emoji-btn:hover {
+      background: rgba(255, 255, 255, 0.06);
+      border-color: var(--border);
+    }
+
+    .report-btn {
+      background: rgba(239, 68, 68, 0.12);
+      color: #fca5a5;
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      border-radius: 8px;
+      padding: 5px 10px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.15s ease;
+    }
+
+    .report-btn:hover {
+      background: var(--danger);
+      color: #fff;
+      border-color: var(--danger);
+    }
+
+    .protected-note {
+      font-size: 12px;
+      color: var(--muted);
+      font-style: italic;
+    }
+
+    .composer {
+      padding: 14px 16px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 8px;
+    }
+
+    input[type="text"],
+    select,
+    textarea {
+      width: 100%;
+      background: var(--panel-2);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 9px 11px;
+      font-size: 14px;
+      font-family: inherit;
+    }
+
+    input[type="text"]:focus,
+    select:focus,
+    textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .btn-primary {
+      background: var(--accent-2);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 9px 15px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .btn-primary:hover {
+      background: var(--accent);
+      color: #0f172a;
+    }
+
+    .side-body {
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .field-label {
+      display: block;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .report-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 260px;
+      overflow-y: auto;
+    }
+
+    .report-item {
+      background: var(--panel-2);
+      border: 1px solid rgba(239, 68, 68, 0.35);
+      border-radius: 10px;
+      padding: 9px 11px;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #0f172a;
+      color: var(--text);
+      border: 1px solid var(--ok);
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-size: 13px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+      opacity: 0;
+      transform: translateY(8px);
+      pointer-events: none;
+      transition: 0.2s ease;
+      z-index: 50;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 6, 23, 0.72);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 40;
+    }
+
+    .modal-backdrop.open {
+      display: flex;
+    }
+
+    .modal {
+      width: 100%;
+      max-width: 420px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px;
+    }
+
+    .modal h3 {
+      margin: 0 0 8px;
+      font-size: 16px;
+    }
+
+    .modal p {
+      margin: 0 0 12px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 8px 12px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+  </style>
 </head>
-<body class="bg-slate-100 text-slate-800 h-screen flex flex-col overflow-hidden">
+<body>
+  <div class="app">
+    <!-- Hlavný chat -->
+    <section class="card">
+      <div class="card-header">
+        <h1>Hlavný chat (reakcie v chate, bez RP)</h1>
+        <span class="pill">RP vypnuté • Admin chránený pred reportom</span>
+      </div>
 
-    <!-- AUTH SCREEN (LOGIN / REGISTER) -->
-    <div id="authScreen" class="fixed inset-0 bg-gradient-to-br from-blue-950 via-blue-900 to-slate-900 z-50 flex items-center justify-center p-4 overflow-y-auto">
-        <div class="bg-white rounded-3xl max-w-md w-full p-7 shadow-2xl border border-slate-100 my-auto">
-            <div class="text-center mb-6">
-                <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-slovakia-blue text-white text-2xl font-black shadow-lg mb-3">
-                    T.
-                </div>
-                <h1 class="text-2xl font-black text-slovakia-blue tracking-tight">T.CKA <span class="text-slovakia-red">SK</span></h1>
-                <p class="text-xs text-slate-500 mt-1">Slovenský komunitný chat, stretko, bazár a hry</p>
-            </div>
+      <div id="messagesList" class="messages"></div>
 
-            <div class="flex border-b border-slate-200 mb-5">
-                <button type="button" id="tabLoginBtn" onclick="switchAuthTab('login')" class="flex-1 pb-3 font-bold text-sm border-b-2 border-slovakia-blue text-slovakia-blue transition">Prihlásenie</button>
-                <button type="button" id="tabRegBtn" onclick="switchAuthTab('register')" class="flex-1 pb-3 font-bold text-sm text-slate-400 hover:text-slate-600 transition">Nová registrácia</button>
-            </div>
+      <form id="chatForm" class="composer">
+        <input
+          type="text"
+          id="messageInput"
+          placeholder="Napíš správu do chatu..."
+          autocomplete="off"
+          required
+        />
+        <button type="submit" class="btn-primary">Odoslať</button>
+      </form>
+    </section>
 
-            <div id="authMessage" class="hidden mb-4 p-3 rounded-xl text-xs font-semibold"></div>
-
-            <!-- LOGIN FORM -->
-            <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4">
-                <div>
-                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">E-mail</label>
-                    <input type="email" id="loginEmail" required placeholder="tvoj@email.sk" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-slovakia-blue focus:outline-none text-sm">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Heslo</label>
-                    <input type="password" id="loginPassword" required placeholder="••••••••" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-slovakia-blue focus:outline-none text-sm">
-                </div>
-                <button type="submit" id="loginSubmitBtn" class="w-full bg-slovakia-blue text-white py-3 rounded-xl font-bold text-sm hover:bg-opacity-90 transition shadow-md">Prihlásiť sa</button>
-            </form>
-
-            <!-- REGISTER FORM -->
-            <form id="registerForm" onsubmit="handleRegister(event)" class="space-y-3.5 hidden">
-                <div>
-                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Prezývka (Nick)</label>
-                    <input type="text" id="regNick" required maxlength="24" placeholder="napr. Jano_BA" class="w-full px-4 py-2 rounded-xl border border-slate-300 focus:ring-2 focus:ring-slovakia-blue focus:outline-none text-sm">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">E-mail</label>
-                    <input type="email" id="regEmail" required placeholder="tvoj@email.sk" class="w-full px-4 py-2 rounded-xl border border-slate-300 focus:ring-2 focus:ring-slovakia-blue focus:outline-none text-sm">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Heslo (min. 6 znakov)</label>
-                    <input type="password" id="regPassword" required minlength="6" placeholder="••••••••" class="w-full px-4 py-2 rounded-xl border border-slate-300 focus:ring-2 focus:ring-slovakia-blue focus:outline-none text-sm">
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Pohlavie</label>
-                        <select id="regGender" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm bg-white">
-                            <option value="muž">♂ Muž</option>
-                            <option value="žena">♀ Žena</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Vek</label>
-                        <input type="number" id="regAge" min="15" max="99" placeholder="25" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm">
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Kraj / Lokalita</label>
-                    <select id="regLocation" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm bg-white">
-                        <option value="Bratislavský">Bratislavský kraj</option>
-                        <option value="Západné Slovensko">Západné Slovensko</option>
-                        <option value="Stredné Slovensko">Stredné Slovensko</option>
-                        <option value="Východné Slovensko">Východné Slovensko</option>
-                        <option value="UK & Írsko">🇬🇧 UK & Írsko</option>
-                        <option value="Česká republika">🇨🇿 Česká republika</option>
-                        <option value="Nemecko & Rakúsko">🇩🇪/🇦🇹 Nemecko & Rakúsko</option>
-                    </select>
-                </div>
-                <button type="submit" id="regSubmitBtn" class="w-full bg-slovakia-red text-white py-3 rounded-xl font-bold text-sm hover:bg-opacity-90 transition shadow-md">Registrovať a overiť e-mail</button>
-            </form>
-        </div>
-    </div>
-
-    <!-- MAIN APP -->
-    <div id="mainApp" class="flex-1 flex flex-col h-full hidden overflow-hidden">
-        <!-- TOP HEADER -->
-        <header class="bg-slovakia-blue text-white px-4 py-2.5 shadow-md flex items-center justify-between flex-shrink-0 z-20">
-            <div class="flex items-center space-x-3">
-                <button type="button" onclick="toggleMobileDrawer('rooms')" class="md:hidden p-2 rounded-lg bg-blue-900 hover:bg-blue-800 text-white" title="Miestnosti">
-                    <i class="fa-solid fa-door-open"></i>
-                </button>
-                <div class="flex items-center space-x-2 cursor-pointer" onclick="switchSection('chat')">
-                    <span class="font-black tracking-wider text-lg">T.CKA</span>
-                    <span class="bg-white text-slovakia-red text-[10px] font-black px-2 py-0.5 rounded-full">SK</span>
-                </div>
-            </div>
-
-            <!-- DESKTOP NAVIGATION -->
-            <nav class="hidden md:flex items-center space-x-1.5">
-                <button id="navChatBtn" onclick="switchSection('chat')" class="px-3.5 py-2 rounded-lg bg-blue-900 text-xs font-bold transition flex items-center gap-1.5">
-                    <i class="fa-solid fa-comments"></i><span>Miestnosti</span>
-                </button>
-                <button id="navStretkoBtn" onclick="switchSection('stretko')" class="px-3.5 py-2 rounded-lg hover:bg-blue-900 text-xs font-bold transition flex items-center gap-1.5">
-                    <i class="fa-solid fa-heart text-pink-300"></i><span>Stretko</span>
-                </button>
-                <button id="navCommBtn" onclick="switchSection('community')" class="px-3.5 py-2 rounded-lg hover:bg-blue-900 text-xs font-bold transition flex items-center gap-1.5">
-                    <i class="fa-solid fa-earth-europe text-emerald-300"></i><span>Spolujazda & Bazár</span>
-                </button>
-                <button id="navMessagesBtn" onclick="switchSection('messages')" class="px-3.5 py-2 rounded-lg hover:bg-blue-900 text-xs font-bold transition flex items-center gap-1.5 relative">
-                    <i class="fa-solid fa-envelope text-amber-300"></i><span>Správy (RP)</span>
-                    <span id="unreadRpBadge" class="bg-red-600 text-white text-[10px] px-1.5 py-0.2 rounded-full font-black hidden">0</span>
-                </button>
-                <button id="navQuizBtn" onclick="switchSection('quiz')" class="px-3.5 py-2 rounded-lg hover:bg-blue-900 text-xs font-bold transition flex items-center gap-1.5">
-                    <i class="fa-solid fa-brain text-purple-300"></i><span>Kvíz</span>
-                </button>
-                <button id="navWordgameBtn" onclick="switchSection('jokes')" class="px-3.5 py-2 rounded-lg hover:bg-blue-900 text-xs font-bold transition flex items-center gap-1.5">
-                    <i class="fa-solid fa-face-laugh-squint text-cyan-300"></i><span>Vtipy & Citáty</span>
-                </button>
-                <button id="navAdminBtn" onclick="switchSection('admin')" class="px-3.5 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-xs font-bold transition flex items-center gap-1.5 hidden">
-                    <i class="fa-solid fa-shield-halved"></i><span>Admin</span>
-                </button>
-            </nav>
-
-            <!-- USER PROFILE & MOBILE CONTROLS -->
-            <div class="flex items-center space-x-2">
-                <button type="button" onclick="toggleMobileDrawer('users')" class="md:hidden px-2.5 py-1.5 rounded-lg bg-blue-900 text-xs font-bold flex items-center gap-1">
-                    <i class="fa-solid fa-users text-green-300"></i>
-                    <span id="mobileActiveUsersCount">0</span>
-                </button>
-
-                <button onclick="openProfileModal()" class="flex items-center space-x-2 bg-blue-900/80 hover:bg-blue-900 px-2.5 py-1.5 rounded-full transition">
-                    <div id="userAvatarContainer" class="w-7 h-7 rounded-full bg-white text-slovakia-blue font-black text-xs flex items-center justify-center overflow-hidden">
-                        <span id="userAvatarInitial">U</span>
-                    </div>
-                    <span id="headerNick" class="text-xs font-bold max-w-[90px] truncate hidden sm:inline">Používateľ</span>
-                    <span id="headerAdminBadge" class="bg-red-600 text-white text-[9px] px-1.5 py-0.5 rounded font-black hidden">ADMIN</span>
-                </button>
-
-                <button type="button" onclick="toggleMobileDrawer('nav')" class="md:hidden p-2 rounded-lg bg-blue-900 hover:bg-blue-800 text-white relative" title="Menu">
-                    <i class="fa-solid fa-bars"></i>
-                    <span id="mobileUnreadRpDot" class="w-2.5 h-2.5 bg-red-500 rounded-full absolute top-1 right-1 hidden"></span>
-                </button>
-            </div>
-        </header>
-
-        <!-- MOBILE DRAWER BACKDROP -->
-        <div id="mobileDrawerBackdrop" onclick="closeAllMobileDrawers()" class="fixed inset-0 bg-black/50 z-40 hidden md:hidden"></div>
-
-        <!-- MAIN WORKSPACE -->
-        <main class="flex-1 flex overflow-hidden p-2 md:p-4 gap-3">
-
-            <!-- SECTION 1: CHAT & ROOMS -->
-            <div id="sectionChat" class="flex-1 flex gap-3 overflow-hidden">
-                <!-- LEFT SIDEBAR: ROOMS (DESKTOP + MOBILE DRAWER) -->
-                <aside id="mobileRoomsDrawer" class="fixed inset-y-0 left-0 w-72 bg-white z-50 p-4 shadow-2xl hidden md:static md:flex md:w-64 md:rounded-xl md:shadow-sm md:border md:border-slate-200 flex-col overflow-y-auto flex-shrink-0">
-                    <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-100">
-                        <h3 class="font-black text-xs uppercase tracking-wider text-slate-400">Chatovacie miestnosti</h3>
-                        <button type="button" onclick="closeAllMobileDrawers()" class="md:hidden text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
-                    </div>
-                    <div class="space-y-1 text-sm">
-                        <button onclick="changeRoom('Hlavná sála')" data-room="Hlavná sála" class="room-btn w-full flex items-center justify-between px-3 py-2 rounded-lg bg-blue-50 text-slovakia-blue font-bold transition">
-                            <span>🏛️ Hlavná sála</span>
-                            <span id="count-Hlavná sála" class="text-xs bg-slovakia-blue text-white px-2 py-0.5 rounded-full font-bold">0</span>
-                        </button>
-                        <button onclick="changeRoom('Tabuľa 18+')" data-room="Tabuľa 18+" class="room-btn w-full flex items-center justify-between px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-50 transition">
-                            <span>🔞 Tabuľa 18+</span>
-                            <span id="count-Tabuľa 18+" class="text-xs bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full">0</span>
-                        </button>
-                        <button onclick="changeRoom('Pikošky a zábava')" data-room="Pikošky a zábava" class="room-btn w-full flex items-center justify-between px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-50 transition">
-                            <span>😂 Pikošky a zábava</span>
-                            <span id="count-Pikošky a zábava" class="text-xs bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full">0</span>
-                        </button>
-                        <div class="pt-2 pb-1 px-3 text-[10px] font-bold uppercase text-slate-400">Zahraničie</div>
-                        <button onclick="changeRoom('Slováci v UK & Írsku')" data-room="Slováci v UK & Írsku" class="room-btn w-full flex items-center justify-between px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-50 transition">
-                            <span>🇬🇧 Slováci v UK & Írsku</span>
-                            <span id="count-Slováci v UK & Írsku" class="text-xs bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full">0</span>
-                        </button>
-                        <button onclick="changeRoom('Slováci v Česku')" data-room="Slováci v Česku" class="room-btn w-full flex items-center justify-between px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-50 transition">
-                            <span>🇨🇿 Slováci v Česku</span>
-                            <span id="count-Slováci v Česku" class="text-xs bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full">0</span>
-                        </button>
-                        <button onclick="changeRoom('Slováci v DE & AT')" data-room="Slováci v DE & AT" class="room-btn w-full flex items-center justify-between px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-50 transition">
-                            <span>🇩🇪 Slováci v DE & AT</span>
-                            <span id="count-Slováci v DE & AT" class="text-xs bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full">0</span>
-                        </button>
-                        <div class="pt-2 pb-1 px-3 text-[10px] font-bold uppercase text-slate-400">Regióny SR</div>
-                        <button onclick="changeRoom('Bratislavský kraj')" data-room="Bratislavský kraj" class="room-btn w-full flex items-center justify-between px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-50 transition">
-                            <span>🏰 Bratislavský kraj</span>
-                            <span id="count-Bratislavský kraj" class="text-xs bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full">0</span>
-                        </button>
-                        <button onclick="changeRoom('Západné Slovensko')" data-room="Západné Slovensko" class="room-btn w-full flex items-center justify-between px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-50 transition">
-                            <span>🌾 Západné Slovensko</span>
-                            <span id="count-Západné Slovensko" class="text-xs bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full">0</span>
-                        </button>
-                        <button onclick="changeRoom('Stredné Slovensko')" data-room="Stredné Slovensko" class="room-btn w-full flex items-center justify-between px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-50 transition">
-                            <span>🏔️ Stredné Slovensko</span>
-                            <span id="count-Stredné Slovensko" class="text-xs bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full">0</span>
-                        </button>
-                        <button onclick="changeRoom('Východné Slovensko')" data-room="Východné Slovensko" class="room-btn w-full flex items-center justify-between px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-50 transition">
-                            <span>🌲 Východné Slovensko</span>
-                            <span id="count-Východné Slovensko" class="text-xs bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full">0</span>
-                        </button>
-                    </div>
-                </aside>
-
-                <!-- CENTER CHAT WINDOW -->
-                <section class="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col overflow-hidden">
-                    <div class="px-4 py-3 border-b border-slate-200 flex items-center justify-between bg-slate-50/70 flex-shrink-0">
-                        <div>
-                            <h2 id="currentRoomTitle" class="font-black text-slovakia-blue text-base">Hlavná sála</h2>
-                            <span id="currentRoomLiveCount" class="text-xs text-slate-500">0 v miestnosti</span>
-                        </div>
-                        <div class="flex items-center space-x-1.5">
-                            <button type="button" onclick="sendQuickMsg('Ahojte všetci! 👋')" class="text-xs bg-white border border-slate-200 hover:bg-slate-100 px-2.5 py-1 rounded-lg font-medium">👋 Pozdrav</button>
-                            <button type="button" onclick="sendQuickMsg('Ako sa dnes máte? ☕')" class="text-xs bg-white border border-slate-200 hover:bg-slate-100 px-2.5 py-1 rounded-lg font-medium hidden sm:inline-block">☕ Káva</button>
-                        </div>
-                    </div>
-
-                    <div id="chatMessages" class="flex-1 p-4 overflow-y-auto space-y-3.5 scroll-smooth"></div>
-
-                    <div id="roomTypingIndicator" class="hidden px-4 py-1 text-xs text-slate-500 bg-slate-50 border-t border-slate-100"></div>
-
-                    <!-- EMOJI PICKER BAR (60 SMAJLÍKOV) -->
-                    <div id="emojiPickerBar" class="hidden px-3 py-2 bg-slate-100 border-t border-slate-200 max-h-36 overflow-y-auto flex flex-wrap gap-1 text-lg select-none flex-shrink-0"></div>
-
-                    <form onsubmit="sendChatMessage(event)" class="p-2.5 md:p-3 border-t border-slate-200 bg-white flex items-center gap-2 flex-shrink-0">
-                        <button type="button" onclick="toggleEmojiPicker()" title="Smajlíky (60)" class="px-3 py-2 md:py-2.5 rounded-lg border border-slate-300 bg-slate-50 hover:bg-slate-100 text-lg leading-none flex-shrink-0">
-                            😊
-                        </button>
-                        <input type="text" id="chatInput" oninput="handleChatTypingInput()" placeholder="Napíš správu do miestnosti..." autocomplete="off" class="flex-1 px-3.5 py-2 md:py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-slovakia-blue focus:outline-none text-sm">
-                        <button type="submit" class="bg-slovakia-blue text-white px-4 md:px-5 py-2 md:py-2.5 rounded-lg font-bold text-sm hover:bg-opacity-90 transition flex-shrink-0">
-                            <i class="fa-solid fa-paper-plane"></i>
-                        </button>
-                    </form>
-                </section>
-
-                <!-- RIGHT SIDEBAR: ONLINE USERS -->
-                <aside id="mobileUsersDrawer" class="fixed inset-y-0 right-0 w-72 bg-white z-50 p-4 shadow-2xl hidden md:static md:flex md:w-64 md:rounded-xl md:shadow-sm md:border md:border-slate-200 flex-col overflow-hidden flex-shrink-0">
-                    <div class="flex items-center justify-between pb-3 mb-2 border-b border-slate-100">
-                        <h3 class="font-black text-xs uppercase tracking-wider text-slate-400">Online v miestnosti (<span id="activeUsersCount">0</span>)</h3>
-                        <button type="button" onclick="closeAllMobileDrawers()" class="md:hidden text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
-                    </div>
-                    <div id="activeUsersList" class="flex-1 overflow-y-auto space-y-1"></div>
-                </aside>
-            </div>
-
-            <!-- SECTION 2: STRETKO -->
-            <div id="sectionStretko" class="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 p-4 md:p-6 hidden flex-col overflow-y-auto">
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 mb-5 border-b border-slate-200">
-                    <div>
-                        <h2 class="text-xl font-black text-slovakia-blue"><i class="fa-solid fa-heart text-pink-500 mr-2"></i>Stretko & Zoznamka</h2>
-                        <p class="text-xs text-slate-500">Nájdi parťákov na pokec, kávu alebo rande na Slovensku aj v zahraničí.</p>
-                    </div>
-                    <select id="stretkoFilter" onchange="renderStretko()" class="px-3.5 py-2 rounded-lg border border-slate-300 text-sm font-semibold bg-white">
-                        <option value="všetci">Všetci členovia</option>
-                        <option value="online">Len online 🟢</option>
-                        <option value="s_fotkou">Len s fotkou 📷</option>
-                        <option value="žena">Len ženy ♀</option>
-                        <option value="muž">Len muži ♂</option>
-                        <option value="zahraničie">Slováci v zahraničí 🌍</option>
-                        <option value="Bratislavský">Bratislavský kraj</option>
-                        <option value="Západné Slovensko">Západné Slovensko</option>
-                        <option value="Stredné Slovensko">Stredné Slovensko</option>
-                        <option value="Východné Slovensko">Východné Slovensko</option>
-                    </select>
-                </div>
-                <div id="stretkoGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"></div>
-            </div>
-
-            <!-- SECTION 3: SPOLUJAZDA & BAZÁR -->
-            <div id="sectionCommunity" class="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 p-4 md:p-6 hidden flex-col overflow-y-auto">
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <!-- SPOLUJAZDA -->
-                    <div class="bg-slate-50 rounded-2xl p-4 border border-slate-200">
-                        <div class="flex items-center justify-between mb-4">
-                            <div>
-                                <h3 class="font-black text-slovakia-blue text-base"><i class="fa-solid fa-car text-emerald-600 mr-2"></i>Spolujazda</h3>
-                                <p class="text-xs text-slate-500">Ponúkni voľné miesto v aute alebo hľadaj odvoz</p>
-                            </div>
-                            <button onclick="openAddPostModal('spolujazda')" class="bg-slovakia-blue text-white px-3.5 py-2 rounded-lg text-xs font-bold hover:bg-opacity-90 transition">+ Pridať trasu</button>
-                        </div>
-                        <div id="spolujazdaList" class="space-y-3"></div>
-                    </div>
-
-                    <!-- BAZÁR -->
-                    <div class="bg-slate-50 rounded-2xl p-4 border border-slate-200">
-                        <div class="flex items-center justify-between mb-4">
-                            <div>
-                                <h3 class="font-black text-slovakia-blue text-base"><i class="fa-solid fa-tag text-slovakia-red mr-2"></i>Komunitný Bazár</h3>
-                                <p class="text-xs text-slate-500">Predaj, kúp alebo daruj veci medzi Slovákmi</p>
-                            </div>
-                            <button onclick="openAddPostModal('bazar')" class="bg-slovakia-red text-white px-3.5 py-2 rounded-lg text-xs font-bold hover:bg-opacity-90 transition">+ Pridať inzerát</button>
-                        </div>
-                        <div id="bazarList" class="space-y-3"></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- SECTION 4: SÚKROMNÉ SPRÁVY (RP) -->
-            <div id="sectionMessages" class="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 hidden overflow-hidden">
-                <div class="flex h-full w-full">
-                    <!-- LEFT: THREADS -->
-                    <div class="w-full sm:w-80 border-r border-slate-200 flex flex-col bg-slate-50/60">
-                        <div class="p-3.5 border-b border-slate-200 flex items-center justify-between bg-white">
-                            <h3 class="font-black text-slovakia-blue text-sm"><i class="fa-solid fa-envelope mr-1.5 text-amber-500"></i>Súkromné správy (RP)</h3>
-                            <button onclick="openNewRpModal()" class="bg-slovakia-blue text-white px-2.5 py-1 rounded-lg text-xs font-bold hover:bg-opacity-90">+ Nová</button>
-                        </div>
-                        <div id="rpThreadsList" class="flex-1 overflow-y-auto divide-y divide-slate-100"></div>
-                    </div>
-
-                    <!-- RIGHT: CONVERSATION -->
-                    <div class="flex-1 flex flex-col bg-slate-50/30">
-                        <div class="p-3.5 border-b border-slate-200 bg-white">
-                            <h4 id="rpActivePartnerNick" class="font-bold text-slovakia-blue text-sm">Vyber konverzáciu vľavo</h4>
-                            <p id="rpActivePartnerSub" class="text-xs text-slate-400">Súkromná pošta medzi členmi</p>
-                        </div>
-                        <div id="rpChatFeed" class="flex-1 p-4 overflow-y-auto space-y-3">
-                            <div class="text-center text-xs text-slate-400 py-12">Klikni na osobu vľavo alebo pošli novú RP cez tlačidlo <b>+ Nová</b>.</div>
-                        </div>
-                        <form id="rpReplyForm" onsubmit="sendRpReply(event)" class="p-3 border-t border-slate-200 bg-white flex gap-2 hidden">
-                            <input type="text" id="rpReplyInput" placeholder="Napíš súkromnú odpoveď..." autocomplete="off" class="flex-1 px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-slovakia-blue focus:outline-none text-sm">
-                            <button type="submit" class="bg-slovakia-blue text-white px-5 py-2 rounded-lg text-sm font-bold hover:bg-opacity-90 transition">Odoslať</button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-
-            <!-- SECTION 5: SLOVENSKÝ KVÍZ + TOP 5 REBRÍČEK -->
-            <div id="sectionQuiz" class="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 p-6 hidden flex-col items-center justify-start text-center overflow-y-auto">
-                <div class="max-w-lg w-full my-auto py-4">
-                    <span class="text-xs font-bold bg-red-100 text-slovakia-red px-3 py-1 rounded-full uppercase tracking-widest">Vedomosti o Slovensku</span>
-                    <h2 class="text-2xl font-black text-slovakia-blue mt-3 mb-2">Slovenský Kvíz</h2>
-                    <p class="text-xs text-slate-500 mb-6">Odpovedaj správne, zbieraj body (+10 za otázku) a dostaň sa do TOP 5!</p>
-
-                    <div id="quizCard" class="bg-slate-50 border border-slate-200 rounded-2xl p-6 shadow-sm text-left">
-                        <h3 id="quizQuestion" class="text-base md:text-lg font-bold text-slate-800 mb-4">Načítavam otázku...</h3>
-                        <div id="quizOptions" class="space-y-2.5"></div>
-                        <div id="quizResult" class="hidden"></div>
-                    </div>
-
-                    <!-- TOP 5 LEADERBOARD -->
-                    <div class="mt-6 bg-slate-50 border border-slate-200 rounded-2xl p-4 text-left">
-                        <div class="flex items-center justify-between mb-3">
-                            <h4 class="font-black text-slovakia-blue text-xs uppercase tracking-wider">
-                                <i class="fa-solid fa-trophy text-amber-500 mr-1.5"></i>TOP 5 znalcov Slovenska
-                            </h4>
-                            <span id="myQuizScoreBadge" class="text-xs font-bold bg-blue-100 text-slovakia-blue px-2.5 py-0.5 rounded-full">Najviac bodov: 0</span>
-                        </div>
-                        <div id="quizLeaderboardList" class="space-y-1.5 text-xs">
-                            <div class="text-slate-400">Načítavam rebríček...</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- SECTION 6: VTIPY, CITÁTY & NÁHODNÝ PARŤÁK -->
-            <div id="sectionJokes" class="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 p-4 md:p-6 hidden flex-col overflow-y-auto">
-                <div class="max-w-3xl w-full mx-auto space-y-6 my-auto py-2">
-                    <div class="text-center">
-                        <span class="text-xs font-bold bg-cyan-100 text-cyan-800 px-3 py-1 rounded-full uppercase tracking-widest">Zábava & Inšpirácia</span>
-                        <h2 class="text-2xl font-black text-slovakia-blue mt-2">Slovenské vtipy, citáty a náhodný parťák</h2>
-                        <p class="text-xs text-slate-500 mt-1">Zlepši si náladu, pošli vtip do miestnosti alebo si nájdi niekoho na pokec.</p>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <!-- VTIP DŇA -->
-                        <div class="bg-slate-50 border border-slate-200 rounded-2xl p-5 flex flex-col justify-between shadow-sm">
-                            <div>
-                                <div class="flex items-center justify-between mb-3">
-                                    <span class="text-xs font-black uppercase tracking-wider text-slovakia-red"><i class="fa-solid fa-face-laugh-squint mr-1.5"></i>Vtip</span>
-                                    <span id="jokeCategoryBadge" class="text-[10px] font-bold bg-red-100 text-slovakia-red px-2 py-0.5 rounded-full">Zábava</span>
-                                </div>
-                                <p id="jokeText" class="text-sm text-slate-700 leading-relaxed min-h-[84px]">Načítavam vtip...</p>
-                            </div>
-                            <div class="flex gap-2 mt-4 pt-3 border-t border-slate-200">
-                                <button type="button" onclick="nextJoke()" class="flex-1 bg-slovakia-blue text-white py-2 rounded-xl text-xs font-bold hover:bg-opacity-90 transition">
-                                    <i class="fa-solid fa-shuffle mr-1.5"></i>Ďalší vtip
-                                </button>
-                                <button type="button" onclick="shareJokeToChat()" class="px-3.5 py-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-xs font-bold text-slate-700 transition" title="Poslať do aktuálnej miestnosti">
-                                    <i class="fa-solid fa-paper-plane mr-1 text-slovakia-blue"></i>Do chatu
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- CITÁT -->
-                        <div class="bg-slate-50 border border-slate-200 rounded-2xl p-5 flex flex-col justify-between shadow-sm">
-                            <div>
-                                <div class="flex items-center justify-between mb-3">
-                                    <span class="text-xs font-black uppercase tracking-wider text-slovakia-blue"><i class="fa-solid fa-quote-left mr-1.5"></i>Citát</span>
-                                    <span id="quoteAuthorBadge" class="text-[10px] font-bold bg-blue-100 text-slovakia-blue px-2 py-0.5 rounded-full">Múdrosť</span>
-                                </div>
-                                <p id="quoteText" class="text-sm italic text-slate-700 leading-relaxed min-h-[84px]">Načítavam citát...</p>
-                            </div>
-                            <div class="flex gap-2 mt-4 pt-3 border-t border-slate-200">
-                                <button type="button" onclick="nextQuote()" class="flex-1 bg-slovakia-red text-white py-2 rounded-xl text-xs font-bold hover:bg-opacity-90 transition">
-                                    <i class="fa-solid fa-rotate-right mr-1.5"></i>Ďalší citát
-                                </button>
-                                <button type="button" onclick="shareQuoteToChat()" class="px-3.5 py-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-xs font-bold text-slate-700 transition" title="Poslať do aktuálnej miestnosti">
-                                    <i class="fa-solid fa-paper-plane mr-1 text-slovakia-red"></i>Do chatu
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- NÁHODNÝ PARŤÁK NA POKEC -->
-                    <div class="bg-blue-50/70 border border-blue-200 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                        <div>
-                            <h3 class="font-black text-slovakia-blue text-sm"><i class="fa-solid fa-wand-magic-sparkles mr-1.5 text-amber-500"></i>Náhodný parťák na pokec</h3>
-                            <p id="randomBuddyResult" class="text-xs text-slate-600 mt-1">Klikni na tlačidlo a vyberieme ti náhodného člena z komunity na RP správu.</p>
-                        </div>
-                        <button type="button" onclick="pickRandomBuddy()" class="bg-slovakia-blue text-white px-4 py-2.5 rounded-xl text-xs font-bold hover:bg-opacity-90 transition flex-shrink-0 shadow">
-                            <i class="fa-solid fa-dice mr-1.5"></i>Vylosovať člena
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- SECTION 7: ADMIN PANEL -->
-            <div id="sectionAdmin" class="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 p-4 md:p-6 hidden flex-col overflow-y-auto">
-                <div class="flex items-center justify-between pb-4 mb-5 border-b border-slate-200">
-                    <div>
-                        <h2 class="text-xl font-black text-slovakia-red"><i class="fa-solid fa-shield-halved mr-2"></i>Admin Panel</h2>
-                        <p class="text-xs text-slate-500">Správa používateľov a nahlásení v komunite</p>
-                    </div>
-                    <div class="text-xs font-bold bg-slate-100 px-3 py-1.5 rounded-lg">
-                        Registrovaných: <span id="adminTotalUsers" class="text-slovakia-blue">0</span>
-                    </div>
-                </div>
-
-                <!-- REPORTS LIST -->
-                <div class="mb-6 bg-red-50/50 border border-red-200 rounded-xl p-4">
-                    <h3 class="font-bold text-sm text-slovakia-red mb-3">Nahlásenia od členov (<span id="adminReportsCount">0</span>)</h3>
-                    <div id="adminReportsList" class="space-y-2"></div>
-                </div>
-
-                <!-- USERS TABLE -->
-                <div class="overflow-x-auto border border-slate-200 rounded-xl">
-                    <table class="w-full text-left border-collapse text-sm">
-                        <thead>
-                            <tr class="bg-slate-100 text-xs uppercase text-slate-500 border-b">
-                                <th class="p-3">Nick</th>
-                                <th class="p-3">Pohlavie / Vek</th>
-                                <th class="p-3">E-mail</th>
-                                <th class="p-3">Lokalita</th>
-                                <th class="p-3">Rola</th>
-                                <th class="p-3 text-right">Akcia</th>
-                            </tr>
-                        </thead>
-                        <tbody id="adminUsersTableBody"></tbody>
-                    </table>
-                </div>
-            </div>
-
-        </main>
-    </div>
-
-    <!-- EDIT MY PROFILE MODAL -->
-    <div id="profileModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-white rounded-2xl max-w-md w-full p-6 relative shadow-2xl max-h-[92vh] overflow-y-auto">
-            <button onclick="closeProfileModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
-            <h3 class="text-xl font-bold text-slovakia-blue mb-1">Môj profil</h3>
-            <p class="text-xs text-slate-500 mb-4">Uprav si prezývku, fotku alebo informácie o sebe.</p>
-
-            <form onsubmit="saveUserProfile(event)" class="space-y-3.5">
-                <div class="text-center">
-                    <div class="relative inline-block mb-2">
-                        <div id="modalAvatarWrap" class="w-20 h-20 rounded-full bg-slovakia-blue text-white flex items-center justify-center text-2xl font-black mx-auto overflow-hidden border-4 border-slate-100 shadow">
-                            <span id="modalAvatar">U</span>
-                        </div>
-                        <label for="profilePhotoInput" class="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-slovakia-red text-white flex items-center justify-center cursor-pointer shadow hover:bg-opacity-90 transition">
-                            <i class="fa-solid fa-camera text-xs"></i>
-                        </label>
-                        <input type="file" id="profilePhotoInput" accept="image/*" onchange="handleProfilePhotoSelect(event)" class="hidden">
-                    </div>
-                    <div class="flex justify-center gap-3 text-xs mb-1">
-                        <label for="profilePhotoInput" class="text-slovakia-blue font-bold cursor-pointer hover:underline">Nahrať fotku</label>
-                        <button type="button" id="removePhotoBtn" onclick="removeProfilePhoto()" class="text-red-600 font-semibold hover:underline hidden">Odstrániť fotku</button>
-                    </div>
-                    <p id="modalEmail" class="text-xs text-slate-400">email@adresa.sk</p>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Prezývka (Nick)</label>
-                    <input type="text" id="editNickInput" required maxlength="24" class="w-full px-3.5 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-slovakia-blue focus:outline-none text-sm font-semibold">
-                </div>
-
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Pohlavie</label>
-                        <select id="editGenderInput" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-slovakia-blue focus:outline-none text-sm bg-white">
-                            <option value="muž">♂ Muž</option>
-                            <option value="žena">♀ Žena</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Vek</label>
-                        <input type="number" id="editAgeInput" min="15" max="99" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-slovakia-blue focus:outline-none text-sm">
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Kraj / Lokalita / Zahraničie</label>
-                    <select id="editLocInput" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-slovakia-blue focus:outline-none text-sm bg-white">
-                        <option value="Bratislavský">Bratislavský kraj</option>
-                        <option value="Západné Slovensko">Západné Slovensko</option>
-                        <option value="Stredné Slovensko">Stredné Slovensko</option>
-                        <option value="Východné Slovensko">Východné Slovensko</option>
-                        <option value="UK & Írsko">🇬🇧 UK & Írsko</option>
-                        <option value="Česká republika">🇨🇿 Česká republika</option>
-                        <option value="Nemecko & Rakúsko">🇩🇪/🇦🇹 Nemecko & Rakúsko</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Stav / Krátky status</label>
-                    <input type="text" id="editStatusInput" maxlength="60" placeholder="napr. Hľadám parťákov na pokec alebo pivo 🍺" class="w-full px-3.5 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-slovakia-blue focus:outline-none text-sm">
-                </div>
-
-                <div>
-                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">O mne & Záujmy</label>
-                    <textarea id="editBioInput" rows="3" maxlength="250" placeholder="Napíš pár slov o sebe, odkiaľ si, čo máš rád..." class="w-full px-3.5 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-slovakia-blue focus:outline-none text-sm"></textarea>
-                </div>
-
-                <div class="flex justify-between items-center text-xs bg-slate-50 px-3 py-2 rounded-lg border border-slate-200">
-                    <span class="text-slate-500">Oprávnenie: <strong id="modalRole" class="text-slovakia-red">Člen</strong></span>
-                    <span class="text-slate-500">Účet: <strong id="modalVerified" class="text-green-600">Overený</strong></span>
-                </div>
-
-                <div class="bg-slate-50 border border-slate-200 rounded-xl p-3">
-                    <div class="text-xs font-bold uppercase text-slate-500 mb-1.5"><i class="fa-solid fa-ban mr-1 text-slovakia-red"></i>Zablokovaní používatelia (skryté RP)</div>
-                    <div id="blockedUsersListModal" class="text-xs text-slate-600 space-y-1">Nikoho nemáš zablokovaného.</div>
-                </div>
-
-                <div id="profileSaveAlert" class="hidden text-xs font-bold text-center p-2 rounded-lg bg-green-100 text-green-700">Profil bol úspešne uložený!</div>
-
-                <div class="flex gap-2 pt-1">
-                    <button type="submit" id="saveProfileBtn" class="flex-1 bg-slovakia-blue text-white py-2.5 rounded-lg font-bold hover:bg-opacity-90 transition shadow">Uložiť zmeny</button>
-                    <button type="button" onclick="handleLogout()" class="px-4 bg-slovakia-red text-white py-2.5 rounded-lg font-bold hover:bg-opacity-90 transition" title="Odhlásiť sa"><i class="fa-solid fa-right-from-bracket"></i></button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- PUBLIC USER PROFILE MODAL -->
-    <div id="publicProfileModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-white rounded-2xl max-w-sm w-full p-6 relative shadow-2xl">
-            <button onclick="closePublicProfileModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
-            <div class="text-center mb-4">
-                <div id="pubAvatarWrap" class="w-24 h-24 bg-slovakia-blue text-white rounded-full flex items-center justify-center text-3xl font-black mx-auto mb-3 overflow-hidden border-4 border-slate-100 shadow-md">U</div>
-                <h3 id="pubNick" class="text-xl font-bold text-slovakia-blue">Používateľ</h3>
-                <div id="pubBadges" class="mt-1 flex justify-center items-center gap-1.5"></div>
-                <p id="pubStatus" class="text-xs italic text-slate-500 mt-2 hidden"></p>
-            </div>
-            <div class="space-y-2.5 text-sm bg-slate-50 p-4 rounded-xl mb-5 border border-slate-100">
-                <div class="flex justify-between"><span class="text-slate-500">Lokalita:</span> <span id="pubLoc" class="font-semibold">—</span></div>
-                <div class="flex justify-between"><span class="text-slate-500">Miestnosť:</span> <span id="pubRoom" class="font-semibold text-slovakia-blue">—</span></div>
-                <div id="pubBioWrap" class="pt-2 border-t border-slate-200 hidden">
-                    <span class="block text-xs font-bold uppercase text-slate-400 mb-1">O mne</span>
-                    <p id="pubBio" class="text-xs text-slate-700 whitespace-pre-wrap"></p>
-                </div>
-            </div>
-            <div id="pubActionArea"></div>
-        </div>
-    </div>
-
-    <!-- MOBILE NAVIGATION DRAWER -->
-    <div id="mobileNavDrawer" class="fixed inset-y-0 right-0 w-72 bg-slovakia-blue text-white z-50 p-5 shadow-2xl transform transition-transform hidden md:hidden flex-col justify-between overflow-y-auto">
+    <!-- Bočný panel -->
+    <aside class="card">
+      <div class="card-header">
+        <h2>Nastavenie a reporty</h2>
+      </div>
+      <div class="side-body">
         <div>
-            <div class="flex items-center justify-between pb-4 mb-4 border-b border-blue-800">
-                <span class="font-black tracking-wider text-lg">T.CKA <span class="text-red-500 text-xs px-2 py-0.5 bg-white rounded-full ml-1 font-bold">SK</span></span>
-                <button type="button" onclick="closeAllMobileDrawers()" class="text-blue-200 hover:text-white p-1"><i class="fa-solid fa-xmark text-xl"></i></button>
+          <label for="currentUserSelect" class="field-label">Aktuálny používateľ (test):</label>
+          <select id="currentUserSelect"></select>
+        </div>
+
+        <div>
+          <span class="field-label">Prijaté nahlásenia (<span id="reportCount">0</span>):</span>
+          <div id="reportsList" class="report-list">
+            <div class="report-item" style="border-color: var(--border); color: var(--muted);">
+              Zatiaľ žiadne nahlásenia.
             </div>
-            <div class="space-y-1.5">
-                <button type="button" onclick="mobileNavSelect('chat')" class="w-full text-left px-4 py-3 rounded-xl bg-blue-900/90 hover:bg-blue-800 text-sm font-bold flex items-center">
-                    <i class="fa-solid fa-comments w-6 text-blue-300"></i>Miestnosti
-                </button>
-                <button type="button" onclick="mobileNavSelect('stretko')" class="w-full text-left px-4 py-3 rounded-xl hover:bg-blue-900 text-sm font-bold flex items-center">
-                    <i class="fa-solid fa-heart w-6 text-pink-400"></i>Stretko
-                </button>
-                <button type="button" onclick="mobileNavSelect('community')" class="w-full text-left px-4 py-3 rounded-xl hover:bg-blue-900 text-sm font-bold flex items-center">
-                    <i class="fa-solid fa-earth-europe w-6 text-emerald-400"></i>Spolujazda & Bazár
-                </button>
-                <button type="button" onclick="mobileNavSelect('messages')" class="w-full text-left px-4 py-3 rounded-xl hover:bg-blue-900 text-sm font-bold flex items-center justify-between">
-                    <span><i class="fa-solid fa-envelope w-6 text-amber-300"></i>Správy (RP)</span>
-                    <span id="mobileUnreadRpBadge" class="bg-red-600 text-white text-[10px] px-2 py-0.5 rounded-full font-black hidden">0</span>
-                </button>
-                <button type="button" onclick="mobileNavSelect('quiz')" class="w-full text-left px-4 py-3 rounded-xl hover:bg-blue-900 text-sm font-bold flex items-center">
-                    <i class="fa-solid fa-brain w-6 text-purple-300"></i>Kvíz
-                </button>
-                <button type="button" onclick="mobileNavSelect('jokes')" class="w-full text-left px-4 py-3 rounded-xl hover:bg-blue-900 text-sm font-bold flex items-center">
-                    <i class="fa-solid fa-face-laugh-squint w-6 text-cyan-300"></i>Vtipy & Citáty
-                </button>
-                <button type="button" id="mobileNavAdminBtn" onclick="mobileNavSelect('admin')" class="w-full text-left px-4 py-3 rounded-xl bg-red-600 hover:bg-red-700 text-sm font-bold flex items-center hidden">
-                    <i class="fa-solid fa-shield-halved w-6 text-white"></i>Admin Panel
-                </button>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Modálne okno pre nahlásenie -->
+  <div id="reportModal" class="modal-backdrop" aria-hidden="true">
+    <div class="modal">
+      <h3>Nahlásiť nevhodné správanie</h3>
+      <p id="reportTargetInfo"></p>
+      <label for="reportReason" class="field-label">Dôvod nahlásenia:</label>
+      <textarea id="reportReason" rows="3" placeholder="Opíš stručne, čo sa stalo..."></textarea>
+      <div class="modal-actions">
+        <button type="button" id="cancelReportBtn" class="btn-ghost">Zrušiť</button>
+        <button type="button" id="confirmReportBtn" class="report-btn" style="padding: 8px 14px; font-size: 13px;">
+          Odoslať report
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script>
+    const EMOJIS = ["👍", "❤️", "😂", "🔥", "😮"];
+
+    const users = [
+      { uid: "u1", name: "Marek", role: "user" },
+      { uid: "u2", name: "Katka", role: "user" },
+      { uid: "a1", name: "Hlavný Admin", role: "admin" }
+    ];
+
+    let currentUserId = "u1";
+    let pendingReportTarget = null;
+
+    let messages = [
+      {
+        id: "m1",
+        authorId: "a1",
+        text: "Vitajte v chate! Reagovať môžete priamo emoji tlačidlami pod správou.",
+        time: "14:10",
+        reactions: { "👍": ["u1", "u2"] }
+      },
+      {
+        id: "m2",
+        authorId: "u2",
+        text: "Super, reaguje sa priamo sem do chatu a neposiela sa žiadne RP.",
+        time: "14:12",
+        reactions: { "❤️": ["u1"] }
+      },
+      {
+        id: "m3",
+        authorId: "u1",
+        text: "Skúsme otestovať nahlásenie: na bežných používateľov ide, na admina nie.",
+        time: "14:15",
+        reactions: {}
+      }
+    ];
+
+    const reports = [];
+
+    const messagesListEl = document.getElementById("messagesList");
+    const chatFormEl = document.getElementById("chatForm");
+    const messageInputEl = document.getElementById("messageInput");
+    const currentUserSelectEl = document.getElementById("currentUserSelect");
+    const reportsListEl = document.getElementById("reportsList");
+    const reportCountEl = document.getElementById("reportCount");
+    const toastEl = document.getElementById("toast");
+
+    const reportModalEl = document.getElementById("reportModal");
+    const reportTargetInfoEl = document.getElementById("reportTargetInfo");
+    const reportReasonEl = document.getElementById("reportReason");
+    const cancelReportBtn = document.getElementById("cancelReportBtn");
+    const confirmReportBtn = document.getElementById("confirmReportBtn");
+
+    function getUserById(uid) {
+      return users.find((u) => u.uid === uid) || { uid, name: "Neznámy", role: "user" };
+    }
+
+    function getCurrentUser() {
+      return getUserById(currentUserId);
+    }
+
+    function showToast(text) {
+      toastEl.textContent = text;
+      toastEl.classList.add("show");
+      clearTimeout(showToast._timer);
+      showToast._timer = setTimeout(() => {
+        toastEl.classList.remove("show");
+      }, 2400);
+    }
+
+    // Povolené nahlásenie na kohokoľvek OKREM admina (a nie na seba)
+    function canReportUser(reporter, target) {
+      if (!reporter || !target) return false;
+      if (reporter.uid === target.uid) return false;
+      if (target.role === "admin") return false;
+      return true;
+    }
+
+    // Reakcia priamo v chate (bez RP)
+    function toggleReaction(messageId, emoji) {
+      const msg = messages.find((m) => m.id === messageId);
+      if (!msg) return;
+
+      if (!msg.reactions[emoji]) {
+        msg.reactions[emoji] = [];
+      }
+
+      const idx = msg.reactions[emoji].indexOf(currentUserId);
+      if (idx === -1) {
+        msg.reactions[emoji].push(currentUserId);
+        showToast(`Reakcia ${emoji} pridaná do chatu`);
+      } else {
+        msg.reactions[emoji].splice(idx, 1);
+        if (msg.reactions[emoji].length === 0) {
+          delete msg.reactions[emoji];
+        }
+        showToast(`Reakcia ${emoji} odstránená`);
+      }
+
+      renderMessages();
+    }
+
+    function openReportModal(targetUser, messageId) {
+      const reporter = getCurrentUser();
+      if (!canReportUser(reporter, targetUser)) {
+        showToast("Admina nie je možné nahlásiť.");
+        return;
+      }
+      pendingReportTarget = { targetUser, messageId };
+      reportTargetInfoEl.textContent = `Cieľ: ${targetUser.name} (správa #${messageId})`;
+      reportReasonEl.value = "";
+      reportModalEl.classList.add("open");
+      reportModalEl.setAttribute("aria-hidden", "false");
+      reportReasonEl.focus();
+    }
+
+    function closeReportModal() {
+      pendingReportTarget = null;
+      reportModalEl.classList.remove("open");
+      reportModalEl.setAttribute("aria-hidden", "true");
+    }
+
+    function submitReport() {
+      if (!pendingReportTarget) return;
+      const reporter = getCurrentUser();
+      const { targetUser, messageId } = pendingReportTarget;
+
+      // Dvojitá ochrana aj pri odoslaní
+      if (!canReportUser(reporter, targetUser)) {
+        showToast("Nahlásenie admina je zablokované.");
+        closeReportModal();
+        return;
+      }
+
+      const reason = reportReasonEl.value.trim() || "Nevhodné správanie v chate";
+      reports.unshift({
+        id: "r_" + Date.now(),
+        reporterName: reporter.name,
+        targetName: targetUser.name,
+        messageId,
+        reason,
+        time: new Date().toLocaleTimeString("sk-SK", { hour: "2-digit", minute: "2-digit" })
+      });
+
+      renderReports();
+      closeReportModal();
+      showToast(`Nahlásenie na používateľa ${targetUser.name} bolo odoslané.`);
+    }
+
+    function renderUsersSelect() {
+      currentUserSelectEl.innerHTML = users
+        .map(
+          (u) =>
+            `<option value="${u.uid}" ${u.uid === currentUserId ? "selected" : ""}>` +
+            `${u.name} ${u.role === "admin" ? "(ADMIN)" : "(Používateľ)"}` +
+            `</option>`
+        )
+        .join("");
+    }
+
+    function renderMessages() {
+      const reporter = getCurrentUser();
+
+      messagesListEl.innerHTML = messages
+        .map((msg) => {
+          const author = getUserById(msg.authorId);
+          const isAdminAuthor = author.role === "admin";
+
+          const chipsHtml = Object.entries(msg.reactions)
+            .map(([emoji, uids]) => {
+              if (!uids || uids.length === 0) return "";
+              const active = uids.includes(currentUserId) ? "active" : "";
+              return `<button type="button" class="reaction-chip ${active}" data-react-msg="${msg.id}" data-react-emoji="${emoji}">${emoji} <span>${uids.length}</span></button>`;
+            })
+            .join("");
+
+          const emojiButtonsHtml = EMOJIS.map(
+            (emoji) =>
+              `<button type="button" class="emoji-btn" title="Reagovať ${emoji} v chate" data-react-msg="${msg.id}" data-react-emoji="${emoji}">${emoji}</button>`
+          ).join("");
+
+          const reportControlHtml = canReportUser(reporter, author)
+            ? `<button type="button" class="report-btn" data-report-target="${author.uid}" data-report-msg="${msg.id}">Nahlásiť</button>`
+            : `<span class="protected-note">${author.uid === reporter.uid ? "Vlastná správa" : "Admina nemožno nahlásiť"}</span>`;
+
+          return `
+            <article class="msg">
+              <div class="msg-top">
+                <div class="author-wrap">
+                  <span class="author">${escapeHtml(author.name)}</span>
+                  ${isAdminAuthor ? `<span class="badge-admin">ADMIN</span>` : ""}
+                </div>
+                <span class="time">${escapeHtml(msg.time)}</span>
+              </div>
+              <div class="msg-text">${escapeHtml(msg.text)}</div>
+              ${chipsHtml ? `<div class="reactions-row">${chipsHtml}</div>` : ""}
+              <div class="actions">
+                <div class="emoji-picker" aria-label="Reakcie v chate">
+                  ${emojiButtonsHtml}
+                </div>
+                <div>${reportControlHtml}</div>
+              </div>
+            </article>
+          `;
+        })
+        .join("");
+    }
+
+    function renderReports() {
+      reportCountEl.textContent = String(reports.length);
+      if (reports.length === 0) {
+        reportsListEl.innerHTML = `<div class="report-item" style="border-color: var(--border); color: var(--muted);">Zatiaľ žiadne nahlásenia.</div>`;
+        return;
+      }
+
+      reportsListEl.innerHTML = reports
+        .map(
+          (r) => `
+            <div class="report-item">
+              <div><strong>${escapeHtml(r.reporterName)}</strong> nahlásil <strong>${escapeHtml(r.targetName)}</strong> (${escapeHtml(r.time)})</div>
+              <div style="color: var(--muted); margin-top: 3px;">Dôvod: ${escapeHtml(r.reason)}</div>
             </div>
-        </div>
-        <div class="pt-4 border-t border-blue-800 space-y-2">
-            <button type="button" onclick="closeAllMobileDrawers(); openProfileModal();" class="w-full py-2.5 px-3 rounded-xl bg-blue-900 hover:bg-blue-800 text-xs font-bold flex items-center justify-center gap-2">
-                <i class="fa-solid fa-user-pen"></i><span>Upraviť môj profil</span>
-            </button>
-            <button type="button" onclick="closeAllMobileDrawers(); handleLogout();" class="w-full py-2.5 px-3 rounded-xl bg-red-600/90 hover:bg-red-600 text-xs font-bold flex items-center justify-center gap-2">
-                <i class="fa-solid fa-right-from-bracket"></i><span>Odhlásiť sa</span>
-            </button>
-        </div>
-    </div>
-
-    <!-- ADD COMMUNITY POST MODAL -->
-    <div id="postModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-white rounded-2xl max-w-md w-full p-6 relative shadow-2xl max-h-[92vh] overflow-y-auto">
-            <button type="button" onclick="closePostModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
-            <h3 id="postModalTitle" class="text-xl font-bold text-slovakia-blue mb-1">Nový príspevok</h3>
-            <p id="postModalSub" class="text-xs text-slate-500 mb-4">Príspevok sa zobrazí všetkým členom v reálnom čase.</p>
-            <form onsubmit="submitPostModal(event)" class="space-y-4">
-                <input type="hidden" id="postModalType" value="bazar">
-                <div>
-                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Názov ponuky / inzerátu</label>
-                    <input type="text" id="postTitleInput" required maxlength="80" placeholder="napr. Predám kočík / Idem smer Košice" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-slovakia-blue focus:outline-none text-sm">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Popis</label>
-                    <textarea id="postDescInput" rows="3" required maxlength="400" placeholder="Doplň detaily, cenu alebo čas odchodu..." class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-slovakia-blue focus:outline-none text-sm"></textarea>
-                </div>
-                <div id="postPhotoField">
-                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Fotka (voliteľné — najmä pre Bazár)</label>
-                    <div class="flex items-center gap-3">
-                        <label for="postPhotoInput" class="px-3.5 py-2 rounded-lg border border-slate-300 bg-slate-50 hover:bg-slate-100 text-xs font-bold text-slate-700 cursor-pointer transition">
-                            <i class="fa-solid fa-image mr-1.5 text-slovakia-blue"></i>Vybrať fotku
-                        </label>
-                        <button type="button" id="clearPostPhotoBtn" onclick="clearPostPhoto()" class="text-xs text-red-600 font-semibold hover:underline hidden">Odstrániť fotku</button>
-                        <span id="postPhotoName" class="text-xs text-slate-400 truncate">Žiadna fotka</span>
-                    </div>
-                    <input type="file" id="postPhotoInput" accept="image/*" onchange="handlePostPhotoSelect(event)" class="hidden">
-                    <div id="postPhotoPreviewWrap" class="mt-2.5 hidden">
-                        <img id="postPhotoPreviewImg" src="" alt="Náhľad fotky" class="w-full max-h-48 object-cover rounded-xl border border-slate-200">
-                    </div>
-                </div>
-                <div class="flex justify-end gap-2 pt-1">
-                    <button type="button" onclick="closePostModal()" class="px-4 py-2.5 rounded-lg border border-slate-300 text-sm font-semibold text-slate-600 hover:bg-slate-50">Zrušiť</button>
-                    <button type="submit" id="postModalSubmitBtn" class="bg-slovakia-blue text-white px-6 py-2.5 rounded-lg text-sm font-bold hover:bg-opacity-90 transition">Uverejniť</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- REPORT ABUSE MODAL -->
-    <div id="reportModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-white rounded-2xl max-w-md w-full p-6 relative shadow-2xl">
-            <button type="button" onclick="closeReportModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
-            <h3 class="text-xl font-bold text-slovakia-red mb-1"><i class="fa-solid fa-flag mr-2"></i>Nahlásiť nevhodné chovanie</h3>
-            <p class="text-xs text-slate-500 mb-4">Hlásenie sa uloží správcovi na posúdenie.</p>
-            <form onsubmit="submitReportModal(event)" class="space-y-4">
-                <input type="hidden" id="reportTargetUid" value="">
-                <input type="hidden" id="reportTargetNick" value="">
-                <input type="hidden" id="reportContextText" value="">
-                <div>
-                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Nahlasovaný používateľ</label>
-                    <div id="reportTargetDisplay" class="px-3.5 py-2 rounded-lg bg-slate-100 text-sm font-bold text-slovakia-blue">—</div>
-                </div>
-                <div>
-                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Dôvod nahlásenia</label>
-                    <select id="reportReasonSelect" class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-slovakia-red focus:outline-none text-sm bg-white">
-                        <option value="Obťažovanie alebo urážky">Obťažovanie alebo urážky</option>
-                        <option value="Spam alebo reklama">Spam alebo reklama</option>
-                        <option value="Nevhodný alebo nelegálny obsah">Nevhodný alebo nelegálny obsah</option>
-                        <option value="Podozrivý inzerát / podvod">Podozrivý inzerát / podvod</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Podrobnosti (voliteľné)</label>
-                    <textarea id="reportDetailsInput" rows="3" maxlength="300" placeholder="Opíš stručne, čo sa stalo..." class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-slovakia-red focus:outline-none text-sm"></textarea>
-                </div>
-                <div class="flex justify-end gap-2">
-                    <button type="button" onclick="closeReportModal()" class="px-4 py-2.5 rounded-lg border border-slate-300 text-sm font-semibold text-slate-600 hover:bg-slate-50">Zrušiť</button>
-                    <button type="submit" id="reportSubmitBtn" class="bg-slovakia-red text-white px-5 py-2.5 rounded-lg text-sm font-bold hover:bg-opacity-90 transition">Odoslať hlásenie</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- SEND RP MODAL -->
-    <div id="rpModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-white rounded-2xl max-w-md w-full p-6 relative shadow-2xl">
-            <button onclick="closeRpModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
-            <h3 class="text-xl font-bold text-slovakia-blue mb-1"><i class="fa-solid fa-paper-plane mr-2 text-slovakia-red"></i>Nová súkromná správa (RP)</h3>
-            <p class="text-xs text-slate-500 mb-4">Správa sa doručí priamo do schránky príjemcu.</p>
-            <form onsubmit="submitRpModal(event)" class="space-y-4">
-                <div>
-                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Príjemca</label>
-                    <select id="rpRecipientSelect" required class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-slovakia-blue focus:outline-none text-sm bg-white"></select>
-                </div>
-                <div>
-                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Text správy</label>
-                    <textarea id="rpModalText" rows="4" required placeholder="Ahoj, píšem ti ohľadom..." class="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-slovakia-blue focus:outline-none text-sm"></textarea>
-                </div>
-                <div class="flex justify-end gap-2">
-                    <button type="button" onclick="closeRpModal()" class="px-4 py-2.5 rounded-lg border border-slate-300 text-sm font-semibold text-slate-600 hover:bg-slate-50">Zrušiť</button>
-                    <button type="submit" id="rpModalSubmitBtn" class="bg-slovakia-blue text-white px-6 py-2.5 rounded-lg text-sm font-bold hover:bg-opacity-90 transition">Odoslať RP</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- FIREBASE SDK & SCRIPT LOGIKA -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { 
-            getAuth, 
-            signInWithEmailAndPassword, 
-            createUserWithEmailAndPassword, 
-            sendEmailVerification, 
-            onAuthStateChanged, 
-            signOut,
-            updateProfile
-        } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        import {
-            getFirestore,
-            collection,
-            addDoc,
-            onSnapshot,
-            query,
-            orderBy,
-            where,
-            serverTimestamp,
-            doc,
-            setDoc,
-            updateDoc,
-            deleteDoc
-        } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyArSiSTbikntlFlk5G3Y81kQstIlcxMaMo",
-            authDomain: "tcka-apka.firebaseapp.com",
-            projectId: "tcka-apka",
-            storageBucket: "tcka-apka.firebasestorage.app",
-            messagingSenderId: "570144187664",
-            appId: "1:570144187664:web:af4a0a3163748b9857f195",
-            measurementId: "G-11DVCCFJWZ"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-
-        const ADMIN_EMAIL = "rohar@gmail.com";
-        const ORIGINAL_DOC_TITLE = document.title;
-        let tabBlinkInterval = null;
-        let isInitialRpSnapshot = true;
-
-        let currentUser = null;
-        let currentRoom = "Hlavná sála";
-        let currentSection = "chat";
-
-        let usersDB = [];
-        let messagesDB = {};
-        let privateMessagesDB = [];
-        let activeRpPartnerUid = null;
-        let postsDB = {
-            spolujazda: [],
-            bazar: []
-        };
-
-        let reportsDB = [];
-        let unsubscribeMessages = null;
-        let unsubscribeUsers = null;
-        let unsubscribePrivateMessages = null;
-        let unsubscribeCommunityPosts = null;
-        let unsubscribeReports = null;
-
-        // 60 smajlíkov
-        const EMOJI_LIST_60 = [
-            "😀","😃","😄","😁","😆","😅","😂","🤣","😊","😇",
-            "🙂","😉","😍","🥰","😘","😋","😜","🤪","😎","🤩",
-            "🥳","😏","😒","🙄","😔","😪","😴","🤔","🤨","🤐",
-            "😮","😲","😢","😭","😤","😡","🤬","🤯","🥶","🥵",
-            "👍","👎","👏","🙌","🤝","🙏","💪","✌️","👌","❤️",
-            "💔","🔥","⭐","🎉","🍺","🍻","☕","🥔","🏔️","🇸🇰"
-        ];
-
-        function initEmojiPicker() {
-            const bar = document.getElementById('emojiPickerBar');
-            if (!bar) return;
-            bar.innerHTML = EMOJI_LIST_60.map(em =>
-                `<button type="button" onclick="insertEmojiToInput('${em}')" class="w-8 h-8 flex items-center justify-center rounded hover:bg-white transition">${em}</button>`
-            ).join('');
-        }
-
-        window.toggleEmojiPicker = function() {
-            const bar = document.getElementById('emojiPickerBar');
-            if (!bar) return;
-            if (bar.classList.contains('hidden')) {
-                initEmojiPicker();
-                bar.classList.remove('hidden');
-            } else {
-                bar.classList.add('hidden');
-            }
-        };
-
-        window.insertEmojiToInput = function(emoji) {
-            const input = document.getElementById('chatInput');
-            const bar = document.getElementById('emojiPickerBar');
-            if (!input) return;
-            input.value += emoji;
-            if (bar) bar.classList.add('hidden');
-            input.focus();
-        };
-
-        function startTabTitleBlink(unreadCount) {
-            stopTabTitleBlink();
-            let toggle = false;
-            tabBlinkInterval = setInterval(() => {
-                document.title = toggle
-                    ? `(${unreadCount}) Nová RP! — T.cka`
-                    : `✉️ Nová správa (${unreadCount}) — T.cka`;
-                toggle = !toggle;
-            }, 1000);
-        }
-
-        function stopTabTitleBlink() {
-            if (tabBlinkInterval) {
-                clearInterval(tabBlinkInterval);
-                tabBlinkInterval = null;
-            }
-            document.title = ORIGINAL_DOC_TITLE;
-        }
-
-        window.addEventListener('focus', () => {
-            if (currentSection === 'messages') {
-                stopTabTitleBlink();
-            }
-        });
-
-        function showAuthAlert(msg, isError = true) {
-            const box = document.getElementById('authMessage');
-            if (!box) return;
-            box.innerText = msg;
-            box.classList.remove('hidden', 'bg-red-100', 'text-red-700', 'bg-green-100', 'text-green-700');
-            if (isError) {
-                box.classList.add('bg-red-100', 'text-red-700');
-            } else {
-                box.classList.add('bg-green-100', 'text-green-700');
-            }
-        }
-
-        function hideAuthAlert() {
-            const box = document.getElementById('authMessage');
-            if (box) box.classList.add('hidden');
-        }
-
-        onAuthStateChanged(auth, async (firebaseUser) => {
-            if (firebaseUser) {
-                const email = firebaseUser.email.toLowerCase();
-                const isAdmin = (email === ADMIN_EMAIL);
-
-                if (!firebaseUser.emailVerified && !isAdmin) {
-                    signOut(auth);
-                    showAuthAlert("Tvoj e-mail ešte nie je potvrdený. Skontroluj si schránku (aj Spam) a klikni na overovací odkaz.", true);
-                    return;
-                }
-
-                const savedLoc = localStorage.getItem('tcka_loc_' + firebaseUser.uid) || "Bratislavský";
-                const savedGender = localStorage.getItem('tcka_gender_' + firebaseUser.uid) || (isAdmin ? "muž" : "neuvedené");
-                const savedAge = localStorage.getItem('tcka_age_' + firebaseUser.uid) || "";
-                const savedStatus = localStorage.getItem('tcka_status_' + firebaseUser.uid) || "";
-                const savedBio = localStorage.getItem('tcka_bio_' + firebaseUser.uid) || "";
-                const savedPhoto = localStorage.getItem('tcka_photo_' + firebaseUser.uid) || "";
-                const savedQuizScore = Number(localStorage.getItem('tcka_quiz_' + firebaseUser.uid) || 0);
-                const nickName = isAdmin ? (firebaseUser.displayName || "Admin") : (firebaseUser.displayName || email.split('@')[0]);
-
-                currentUser = {
-                    uid: firebaseUser.uid,
-                    nick: nickName,
-                    email: email,
-                    location: savedLoc,
-                    gender: savedGender,
-                    age: savedAge,
-                    status: savedStatus,
-                    bio: savedBio,
-                    photoData: savedPhoto,
-                    quizScore: savedQuizScore,
-                    currentRoom: currentRoom,
-                    role: isAdmin ? "ADMIN" : "Člen",
-                    verified: firebaseUser.emailVerified
-                };
-
-                try {
-                    const userPayload = {
-                        uid: firebaseUser.uid,
-                        nick: currentUser.nick,
-                        email: email,
-                        location: savedLoc,
-                        gender: savedGender,
-                        age: savedAge,
-                        status: savedStatus,
-                        bio: savedBio,
-                        quizScore: savedQuizScore,
-                        currentRoom: currentRoom,
-                        online: true,
-                        lastActiveMs: Date.now(),
-                        role: currentUser.role,
-                        verified: currentUser.verified,
-                        lastActive: serverTimestamp()
-                    };
-                    if (savedPhoto) userPayload.photoData = savedPhoto;
-                    await setDoc(doc(db, "users", firebaseUser.uid), userPayload, { merge: true });
-                } catch (err) {
-                    console.error("Chyba pri zápise používateľa do Firestore:", err);
-                }
-
-                initAppSession();
-            } else {
-                currentUser = null;
-                isInitialRpSnapshot = true;
-                stopTabTitleBlink();
-                if (unsubscribeMessages) unsubscribeMessages();
-                if (unsubscribeUsers) unsubscribeUsers();
-                if (unsubscribePrivateMessages) unsubscribePrivateMessages();
-                if (unsubscribeCommunityPosts) unsubscribeCommunityPosts();
-                if (unsubscribeReports) unsubscribeReports();
-                document.getElementById('mainApp').classList.add('hidden');
-                document.getElementById('authScreen').classList.remove('hidden');
-            }
-        });
-
-        window.switchAuthTab = function(tab) {
-            hideAuthAlert();
-            const loginForm = document.getElementById('loginForm');
-            const registerForm = document.getElementById('registerForm');
-            const loginBtn = document.getElementById('tabLoginBtn');
-            const regBtn = document.getElementById('tabRegBtn');
-
-            if (tab === 'login') {
-                loginForm.classList.remove('hidden');
-                registerForm.classList.add('hidden');
-                loginBtn.className = "flex-1 pb-3 font-bold text-sm border-b-2 border-slovakia-blue text-slovakia-blue transition";
-                regBtn.className = "flex-1 pb-3 font-bold text-sm text-slate-400 hover:text-slate-600 transition";
-            } else {
-                loginForm.classList.add('hidden');
-                registerForm.classList.remove('hidden');
-                regBtn.className = "flex-1 pb-3 font-bold text-sm border-b-2 border-slovakia-blue text-slovakia-blue transition";
-                loginBtn.className = "flex-1 pb-3 font-bold text-sm text-slate-400 hover:text-slate-600 transition";
-            }
-        };
-
-        window.handleLogin = async function(e) {
-            e.preventDefault();
-            hideAuthAlert();
-            const email = document.getElementById('loginEmail').value.trim();
-            const password = document.getElementById('loginPassword').value;
-            const btn = document.getElementById('loginSubmitBtn');
-
-            btn.disabled = true;
-            btn.innerText = "Overujem heslo...";
-
-            try {
-                await signInWithEmailAndPassword(auth, email, password);
-            } catch (err) {
-                let msg = "Nesprávny e-mail alebo heslo.";
-                if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
-                    msg = "Nesprávny e-mail alebo heslo. Ak ešte nemáš účet, najprv sa zaregistruj v záložke Nová registrácia.";
-                } else if (err.code === 'auth/too-many-requests') {
-                    msg = "Príliš veľa neúspešných pokusov. Skús to o chvíľu znova.";
-                }
-                showAuthAlert(msg, true);
-            } finally {
-                btn.disabled = false;
-                btn.innerText = "Prihlásiť sa";
-            }
-        };
-
-        window.handleRegister = async function(e) {
-            e.preventDefault();
-            hideAuthAlert();
-            const nick = document.getElementById('regNick').value.trim();
-            const email = document.getElementById('regEmail').value.trim();
-            const password = document.getElementById('regPassword').value;
-            const location = document.getElementById('regLocation').value;
-            const gender = document.getElementById('regGender').value;
-            const age = document.getElementById('regAge').value;
-            const btn = document.getElementById('regSubmitBtn');
-
-            btn.disabled = true;
-            btn.innerText = "Vytváram účet...";
-
-            try {
-                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                await updateProfile(userCredential.user, { displayName: nick });
-                localStorage.setItem('tcka_loc_' + userCredential.user.uid, location);
-                localStorage.setItem('tcka_gender_' + userCredential.user.uid, gender);
-                localStorage.setItem('tcka_age_' + userCredential.user.uid, age);
-                await setDoc(doc(db, "users", userCredential.user.uid), {
-                    uid: userCredential.user.uid,
-                    nick: nick,
-                    email: email.toLowerCase(),
-                    location: location,
-                    gender: gender,
-                    age: age,
-                    quizScore: 0,
-                    role: email.toLowerCase() === ADMIN_EMAIL ? "ADMIN" : "Člen",
-                    verified: false,
-                    lastActive: serverTimestamp()
-                });
-                await sendEmailVerification(userCredential.user);
-
-                if (email.toLowerCase() !== ADMIN_EMAIL) {
-                    await signOut(auth);
-                    switchAuthTab('login');
-                    showAuthAlert(`Účet vytvorený! Na ${email} sme poslali potvrdzovací odkaz. Po kliknutí naň sa môžeš prihlásiť.`, false);
-                }
-            } catch (err) {
-                let msg = "Chyba pri registrácii: " + err.message;
-                if (err.code === 'auth/email-already-in-use') {
-                    msg = "Tento e-mail je už zaregistrovaný. Prejdi na Prihlásenie.";
-                } else if (err.code === 'auth/weak-password') {
-                    msg = "Heslo je príliš slabé (zadaj aspoň 6 znakov).";
-                }
-                showAuthAlert(msg, true);
-            } finally {
-                btn.disabled = false;
-                btn.innerText = "Registrovať a overiť e-mail";
-            }
-        };
-
-        function updateHeaderAvatarUI() {
-            if (!currentUser) return;
-            document.getElementById('headerNick').innerText = currentUser.nick;
-            const container = document.getElementById('userAvatarContainer');
-            if (!container) return;
-            if (currentUser.photoData) {
-                container.innerHTML = `<img src="${currentUser.photoData}" alt="${currentUser.nick}" class="w-full h-full object-cover">`;
-            } else {
-                container.innerHTML = `<span id="userAvatarInitial">${currentUser.nick.charAt(0).toUpperCase()}</span>`;
-            }
-        }
-
-        function initAppSession() {
-            document.getElementById('authScreen').classList.add('hidden');
-            document.getElementById('mainApp').classList.remove('hidden');
-
-            updateHeaderAvatarUI();
-
-            if (currentUser.email === ADMIN_EMAIL && currentUser.role === "ADMIN") {
-                document.getElementById('headerAdminBadge').classList.remove('hidden');
-                document.getElementById('navAdminBtn').classList.remove('hidden');
-            } else {
-                document.getElementById('headerAdminBadge').classList.add('hidden');
-                document.getElementById('navAdminBtn').classList.add('hidden');
-            }
-
-            setupRealtimeListeners();
-            renderStretko();
-            renderCommunityPosts();
-            renderAdminPanel();
-            renderQuizLeaderboard();
-        }
-
-        let presenceHeartbeatInterval = null;
-
-        function startPresenceHeartbeat() {
-            if (presenceHeartbeatInterval) clearInterval(presenceHeartbeatInterval);
-            presenceHeartbeatInterval = setInterval(async () => {
-                if (!currentUser) return;
-                try {
-                    await updateDoc(doc(db, "users", currentUser.uid), {
-                        online: true,
-                        currentRoom: currentRoom,
-                        lastActiveMs: Date.now(),
-                        lastActive: serverTimestamp()
-                    });
-                } catch (e) {}
-            }, 25000);
-        }
-
-        window.addEventListener('beforeunload', () => {
-            if (currentUser) {
-                try {
-                    updateDoc(doc(db, "users", currentUser.uid), {
-                        online: false,
-                        lastActiveMs: 0
-                    });
-                } catch (e) {}
-            }
-        });
-
-        function getOnlineUsers() {
-            const now = Date.now();
-            return usersDB.filter(u => {
-                if (currentUser && u.uid === currentUser.uid) return true;
-                if (u.online === false) return false;
-                const activeMs = u.lastActiveMs || (u.lastActive && u.lastActive.toMillis ? u.lastActive.toMillis() : 0);
-                if (!activeMs) return false;
-                if (now - activeMs > 120000) return false;
-                return true;
-            });
-        }
-
-        function setupRealtimeListeners() {
-            startPresenceHeartbeat();
-            isInitialRpSnapshot = true;
-
-            if (unsubscribeUsers) unsubscribeUsers();
-            unsubscribeUsers = onSnapshot(collection(db, "users"), (snapshot) => {
-                usersDB = [];
-                snapshot.forEach((docSnap) => {
-                    const data = docSnap.data();
-                    usersDB.push(data);
-                    if (currentUser && data.uid === currentUser.uid) {
-                        if (data.photoData && !currentUser.photoData) {
-                            currentUser.photoData = data.photoData;
-                            try { localStorage.setItem('tcka_photo_' + currentUser.uid, data.photoData); } catch(e) {}
-                            updateHeaderAvatarUI();
-                        }
-                        if (data.status !== undefined) currentUser.status = data.status;
-                        if (data.bio !== undefined) currentUser.bio = data.bio;
-                        if (data.quizScore !== undefined) currentUser.quizScore = Number(data.quizScore || 0);
-                        if (data.nick) {
-                            currentUser.nick = data.nick;
-                            updateHeaderAvatarUI();
-                        }
-                    }
-                });
-                renderActiveUsers();
-                renderStretko();
-                renderAdminPanel();
-                renderRpThreads();
-                renderChatMessages();
-                renderQuizLeaderboard();
-            });
-
-            if (unsubscribePrivateMessages) unsubscribePrivateMessages();
-            const pmQ = query(
-                collection(db, "private_messages"),
-                where("participants", "array-contains", currentUser.uid)
-            );
-
-            unsubscribePrivateMessages = onSnapshot(pmQ, (snapshot) => {
-                privateMessagesDB = [];
-                snapshot.forEach((docSnap) => {
-                    privateMessagesDB.push({ id: docSnap.id, ...docSnap.data() });
-                });
-                privateMessagesDB.sort((a, b) => (a.createdAtMs || 0) - (b.createdAtMs || 0));
-
-                const unreadList = privateMessagesDB.filter(m => m.toUid === currentUser.uid && !m.read);
-
-                if (!isInitialRpSnapshot) {
-                    const hasNewIncoming = snapshot.docChanges().some(ch => {
-                        if (ch.type !== 'added') return false;
-                        const d = ch.doc.data();
-                        return d.toUid === currentUser.uid && !d.read;
-                    });
-
-                    if (hasNewIncoming) {
-                        playRpNotificationSound();
-                        if (document.hidden || currentSection !== 'messages') {
-                            startTabTitleBlink(unreadList.length || 1);
-                        }
-                    }
-                } else {
-                    isInitialRpSnapshot = false;
-                    if (unreadList.length > 0 && currentSection !== 'messages') {
-                        startTabTitleBlink(unreadList.length);
-                    }
-                }
-
-                if (unreadList.length === 0) {
-                    stopTabTitleBlink();
-                }
-
-                updateUnreadRpBadge();
-                renderRpThreads();
-                if (activeRpPartnerUid) {
-                    renderRpConversation(activeRpPartnerUid);
-                }
-            }, (err) => {
-                console.error("Chyba pri načítaní súkromných správ:", err);
-            });
-
-            function playRpNotificationSound() {
-                try {
-                    const AudioContext = window.AudioContext || window.webkitAudioContext;
-                    if (!AudioContext) return;
-                    const ctx = new AudioContext();
-                    const osc = ctx.createOscillator();
-                    const gain = ctx.createGain();
-                    osc.type = 'sine';
-                    osc.frequency.setValueAtTime(587.33, ctx.currentTime);
-                    osc.frequency.setValueAtTime(880, ctx.currentTime + 0.1);
-                    gain.gain.setValueAtTime(0.15, ctx.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
-                    osc.connect(gain);
-                    gain.connect(ctx.destination);
-                    osc.start();
-                    osc.stop(ctx.currentTime + 0.3);
-                } catch (e) {}
-            }
-
-            listenCommunityPosts();
-
-            if (currentUser && currentUser.email === ADMIN_EMAIL) {
-                listenReportsForAdmin();
-            }
-
-            loadRoomMessages();
-        }
-
-        function loadRoomMessages() {
-            if (unsubscribeMessages) unsubscribeMessages();
-            shouldForceScrollToBottom = true;
-
-            const q = query(collection(db, "rooms", currentRoom, "messages"), orderBy("timestamp", "asc"));
-            unsubscribeMessages = onSnapshot(q, (snapshot) => {
-                const msgs = [];
-                snapshot.forEach((docSnap) => {
-                    msgs.push({ id: docSnap.id, ...docSnap.data() });
-                });
-                messagesDB[currentRoom] = msgs;
-                renderChatMessages();
-            }, (error) => {
-                const fallbackQ = collection(db, "rooms", currentRoom, "messages");
-                onSnapshot(fallbackQ, (snap) => {
-                    const fallbackMsgs = [];
-                    snap.forEach(d => fallbackMsgs.push({ id: d.id, ...d.data() }));
-                    messagesDB[currentRoom] = fallbackMsgs;
-                    renderChatMessages();
-                });
-            });
-        }
-
-        window.handleLogout = async function() {
-            stopTabTitleBlink();
-            if (presenceHeartbeatInterval) clearInterval(presenceHeartbeatInterval);
-            if (currentUser) {
-                try {
-                    await deleteDoc(doc(db, "users", currentUser.uid));
-                } catch(e) {}
-            }
-            await signOut(auth);
-            closeProfileModal();
-        };
-
-        window.switchSection = function(section) {
-            if (section === 'admin' && (!currentUser || currentUser.email !== ADMIN_EMAIL)) {
-                alert("Neoprávnený prístup!");
-                return;
-            }
-
-            currentSection = section;
-            ['chat', 'stretko', 'community', 'messages', 'quiz', 'jokes', 'admin'].forEach(s => {
-                const el = document.getElementById('section' + s.charAt(0).toUpperCase() + s.slice(1));
-                if (el) el.classList.add('hidden');
-            });
-
-            const targetEl = document.getElementById('section' + section.charAt(0).toUpperCase() + section.slice(1));
-            if (targetEl) targetEl.classList.remove('hidden');
-
-            ['Chat', 'Stretko', 'Comm', 'Messages', 'Quiz', 'Jokes'].forEach(btnKey => {
-                const btn = document.getElementById('nav' + btnKey + 'Btn');
-                if (btn) {
-                    btn.classList.remove('bg-blue-900');
-                    btn.classList.add('hover:bg-blue-900');
-                }
-            });
-            const mapBtn = {
-                chat: 'navChatBtn',
-                stretko: 'navStretkoBtn',
-                community: 'navCommBtn',
-                messages: 'navMessagesBtn',
-                quiz: 'navQuizBtn',
-                jokes: 'navWordgameBtn'
-            };
-            if (mapBtn[section]) {
-                const activeBtn = document.getElementById(mapBtn[section]);
-                if (activeBtn) {
-                    activeBtn.classList.add('bg-blue-900');
-                    activeBtn.classList.remove('hover:bg-blue-900');
-                }
-            }
-
-            if (section === 'quiz') {
-                loadQuizQuestion();
-                renderQuizLeaderboard();
-            }
-            if (section === 'jokes') {
-                initJokesAndQuotes();
-            }
-            if (section === 'messages') {
-                stopTabTitleBlink();
-                renderRpThreads();
-                if (activeRpPartnerUid) renderRpConversation(activeRpPartnerUid);
-            }
-        };
-
-        window.changeRoom = async function(roomName) {
-            currentRoom = roomName;
-            document.getElementById('currentRoomTitle').innerText = roomName;
-
-            document.querySelectorAll('.room-btn').forEach(btn => {
-                if (btn.getAttribute('data-room') === roomName) {
-                    btn.classList.add('bg-blue-50', 'text-slovakia-blue', 'font-bold');
-                    btn.classList.remove('text-slate-600');
-                } else {
-                    btn.classList.remove('bg-blue-50', 'text-slovakia-blue', 'font-bold');
-                    btn.classList.add('text-slate-600');
-                }
-            });
-
-            if (currentUser) {
-                currentUser.currentRoom = roomName;
-                try {
-                    await updateDoc(doc(db, "users", currentUser.uid), {
-                        currentRoom: roomName,
-                        online: true,
-                        lastActiveMs: Date.now(),
-                        lastActive: serverTimestamp()
-                    });
-                } catch (e) {
-                    console.error("Chyba pri zmene miestnosti vo Firestore:", e);
-                }
-            }
-
-            closeAllMobileDrawers();
-            loadRoomMessages();
-        };
-
-        function getGenderBadge(gender, age = '') {
-            const ageStr = age ? `, ${age}` : '';
-            if (gender === 'žena') {
-                return `<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-pink-100 text-pink-700 border border-pink-200"><i class="fa-solid fa-venus mr-1"></i>Žena${ageStr}</span>`;
-            }
-            if (gender === 'muž') {
-                return `<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-sky-100 text-sky-700 border border-sky-200"><i class="fa-solid fa-mars mr-1"></i>Muž${ageStr}</span>`;
-            }
-            return '';
-        }
-
-        let shouldForceScrollToBottom = true;
-
-        function scrollChatToBottom(instant = false) {
-            const container = document.getElementById('chatMessages');
-            if (!container) return;
-            requestAnimationFrame(() => {
-                if (instant) {
-                    const prevBehavior = container.style.scrollBehavior;
-                    container.style.scrollBehavior = 'auto';
-                    container.scrollTop = container.scrollHeight;
-                    container.style.scrollBehavior = prevBehavior;
-                } else {
-                    container.scrollTop = container.scrollHeight;
-                }
-            });
-        }
-
-        function isUserNearBottom(container) {
-            return (container.scrollHeight - container.scrollTop - container.clientHeight) < 140;
-        }
-
-        function renderChatMessages(forceBottom = false) {
-            const container = document.getElementById('chatMessages');
-            if (!container) return;
-            const wasNearBottom = isUserNearBottom(container);
-            const msgs = messagesDB[currentRoom] || [];
-            container.innerHTML = msgs.map(m => {
-                const userObj = usersDB.find(u => (m.uid && u.uid === m.uid) || u.nick === m.nick);
-                const photo = (userObj && userObj.photoData) || m.photoData || '';
-                const targetUid = (userObj && userObj.uid) || m.uid || '';
-                const avatarBg = m.gender === 'žena' ? 'bg-pink-600' : 'bg-slovakia-blue';
-                const nickColor = m.gender === 'žena' ? 'text-pink-700' : 'text-slovakia-blue';
-                const avatarHtml = photo
-                    ? `<img src="${photo}" alt="${m.nick}" class="w-full h-full object-cover">`
-                    : `${(m.nick || 'A').charAt(0).toUpperCase()}`;
-                const clickAttr = targetUid ? `onclick="openPublicProfile('${targetUid}')"` : '';
-                const cursorClass = targetUid ? 'cursor-pointer hover:underline' : '';
-                return `
-                <div class="flex items-start space-x-3">
-                    <div ${clickAttr} class="w-9 h-9 rounded-full ${avatarBg} text-white flex items-center justify-center font-bold text-xs flex-shrink-0 overflow-hidden shadow-sm ${targetUid ? 'cursor-pointer' : ''}">${avatarHtml}</div>
-                    <div class="min-w-0 flex-1">
-                        <div class="flex items-center flex-wrap gap-1.5">
-                            <span ${clickAttr} class="font-bold text-sm ${nickColor} ${cursorClass}">${m.nick}</span>
-                            ${getGenderBadge(m.gender, m.age)}
-                            ${m.role === 'ADMIN' ? '<span class="bg-red-600 text-white text-[10px] px-1.5 py-0.2 rounded font-bold">ADMIN</span>' : ''}
-                            <span class="text-xs text-slate-400">${m.time || ''}</span>
-                            ${currentUser && targetUid && targetUid !== currentUser.uid ? `<button type="button" onclick="openReportModal('${targetUid}', '${String(m.nick || 'Člen').replace(/'/g, "&#39;")}', '${String(m.text || '').replace(/'/g, "&#39;")}')" title="Nahlásiť správu" class="text-slate-300 hover:text-slovakia-red text-xs ml-auto transition"><i class="fa-regular fa-flag"></i></button>` : ''}
-                        </div>
-                        <p class="text-sm text-slate-700 mt-0.5 break-words">${m.text}</p>
-                        ${m.id ? (() => {
-                            const rx = m.reactions || {};
-                            const rxItems = Object.entries(rx).filter(([_, uids]) => Array.isArray(uids) && uids.length > 0);
-                            const badges = rxItems.map(([em, uids]) => {
-                                const active = currentUser && uids.includes(currentUser.uid);
-                                return `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border ${active ? 'bg-blue-100 border-slovakia-blue text-slovakia-blue font-bold' : 'bg-slate-50 border-slate-200 text-slate-600'}"><span>${em}</span><span>${uids.length}</span></span>`;
-                            }).join('');
-                            const canReply = currentUser && targetUid && targetUid !== currentUser.uid;
-                            const safeNickAttr = String(m.nick || 'Člen').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
-                            const safeSnippetAttr = String(m.text || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
-                            const reactBtn = canReply
-                                ? `<button type="button" onclick="reactToMessageWithAutoReply('${m.id}', '${targetUid}', '${safeNickAttr}', '${safeSnippetAttr}')" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs border border-slate-300 bg-white text-slate-700 hover:bg-blue-50 hover:border-slovakia-blue hover:text-slovakia-blue font-semibold transition"><i class="fa-solid fa-reply text-[10px]"></i><span>Reagovať</span></button>`
-                                : '';
-                            return (badges || reactBtn) ? `<div class="flex flex-wrap items-center gap-1.5 mt-1.5">${badges}${reactBtn}</div>` : '';
-                        })() : ''}
-                    </div>
-                </div>
-            `}).join('');
-
-            if (forceBottom || shouldForceScrollToBottom || wasNearBottom) {
-                shouldForceScrollToBottom = false;
-                scrollChatToBottom(true);
-            }
-        }
-
-        let lastTypingWriteMs = 0;
-        window.handleChatTypingInput = async function() {
-            if (!currentUser) return;
-            const now = Date.now();
-            if (now - lastTypingWriteMs < 2500) return;
-            lastTypingWriteMs = now;
-            try {
-                await updateDoc(doc(db, "users", currentUser.uid), {
-                    typingInRoom: currentRoom,
-                    typingAtMs: now,
-                    lastActiveMs: now
-                });
-            } catch (e) {}
-        };
-
-        function renderTypingIndicator() {
-            const indicatorEl = document.getElementById('roomTypingIndicator');
-            if (!indicatorEl) return;
-            const now = Date.now();
-            const typers = getOnlineUsers().filter(u =>
-                currentUser && u.uid !== currentUser.uid &&
-                u.typingInRoom === currentRoom &&
-                u.typingAtMs && (now - u.typingAtMs < 5000)
-            );
-            if (typers.length === 0) {
-                indicatorEl.innerHTML = '';
-                indicatorEl.classList.add('hidden');
-            } else {
-                const names = typers.map(u => u.nick).join(', ');
-                indicatorEl.innerHTML = `<span class="inline-flex items-center gap-1.5"><span class="w-1.5 h-1.5 bg-slovakia-blue rounded-full animate-bounce"></span><span><strong>${names}</strong> ${typers.length > 1 ? 'píšu' : 'píše'}...</span></span>`;
-                indicatorEl.classList.remove('hidden');
-            }
-        }
-
-        window.sendChatMessage = async function(e) {
-            e.preventDefault();
-            if (!currentUser) return;
-            const input = document.getElementById('chatInput');
-            const text = input.value.trim();
-            if (!text) return;
-
-            const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            
-            try {
-                await addDoc(collection(db, "rooms", currentRoom, "messages"), {
-                    uid: currentUser.uid,
-                    nick: currentUser.nick,
-                    gender: currentUser.gender || 'neuvedené',
-                    age: currentUser.age || '',
-                    text: text,
-                    time: time,
-                    role: currentUser.email === ADMIN_EMAIL ? 'ADMIN' : 'Člen',
-                    timestamp: serverTimestamp()
-                });
-                input.value = '';
-                const bar = document.getElementById('emojiPickerBar');
-                if (bar) bar.classList.add('hidden');
-                shouldForceScrollToBottom = true;
-                scrollChatToBottom(true);
-            } catch (err) {
-                console.error("Chyba pri odosielaní správy:", err);
-                alert("Nepodarilo sa odoslať správu do Firestore.");
-            }
-        };
-
-        window.sendQuickMsg = function(text) {
-            document.getElementById('chatInput').value = text;
-        };
-
-        const ALL_ROOMS = [
-            "Hlavná sála",
-            "Tabuľa 18+",
-            "Pikošky a zábava",
-            "Slováci v UK & Írsku",
-            "Slováci v Česku",
-            "Slováci v DE & AT",
-            "Bratislavský kraj",
-            "Západné Slovensko",
-            "Stredné Slovensko",
-            "Východné Slovensko"
-        ];
-
-        function renderActiveUsers() {
-            const list = document.getElementById('activeUsersList');
-            const countEl = document.getElementById('activeUsersCount');
-            if (!list || !countEl) return;
-
-            const onlineUsers = getOnlineUsers();
-
-            const roomCounts = {};
-            ALL_ROOMS.forEach(r => roomCounts[r] = 0);
-
-            onlineUsers.forEach(u => {
-                const r = u.currentRoom || "Hlavná sála";
-                if (roomCounts[r] !== undefined) {
-                    roomCounts[r] += 1;
-                } else {
-                    roomCounts["Hlavná sála"] += 1;
-                }
-            });
-
-            ALL_ROOMS.forEach(r => {
-                const badge = document.getElementById('count-' + r);
-                if (badge) {
-                    const cnt = roomCounts[r] || 0;
-                    badge.innerText = cnt;
-                    if (cnt > 0) {
-                        badge.className = "text-xs bg-slovakia-blue text-white px-2 py-0.5 rounded-full font-bold";
-                    } else {
-                        badge.className = "text-xs bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full";
-                    }
-                }
-            });
-
-            const inThisRoomList = onlineUsers.filter(u => (u.currentRoom || "Hlavná sála") === currentRoom);
-            const liveCountEl = document.getElementById('currentRoomLiveCount');
-            if (liveCountEl) {
-                liveCountEl.innerText = `${inThisRoomList.length} v miestnosti`;
-            }
-
-            countEl.innerText = inThisRoomList.length;
-            const mobCountEl = document.getElementById('mobileActiveUsersCount');
-            if (mobCountEl) mobCountEl.innerText = inThisRoomList.length;
-
-            if (inThisRoomList.length === 0) {
-                list.innerHTML = `<div class="p-4 text-center text-xs text-slate-400">V tejto miestnosti nie je nikto ďalší.</div>`;
-                return;
-            }
-
-            renderTypingIndicator();
-
-            list.innerHTML = inThisRoomList.map(u => {
-                const isMe = currentUser && u.uid === currentUser.uid;
-                const genderIcon = u.gender === 'žena'
-                    ? '<i class="fa-solid fa-venus text-pink-600 text-xs" title="Žena"></i>'
-                    : (u.gender === 'muž' ? '<i class="fa-solid fa-mars text-sky-600 text-xs" title="Muž"></i>' : '');
-                const nickClass = u.gender === 'žena' ? 'text-pink-700 font-semibold' : 'text-slate-700 font-medium';
-                const avatarBg = u.gender === 'žena' ? 'bg-pink-600' : 'bg-slovakia-blue';
-                const miniAvatar = u.photoData
-                    ? `<img src="${u.photoData}" alt="${u.nick}" class="w-full h-full object-cover">`
-                    : `${(u.nick || 'U').charAt(0).toUpperCase()}`;
-                return `
-                <div class="flex items-center justify-between p-2 hover:bg-slate-50 rounded-lg group">
-                    <div onclick="${isMe ? 'openProfileModal()' : `openPublicProfile('${u.uid}')`}" class="flex items-center space-x-2 overflow-hidden cursor-pointer flex-1">
-                        <div class="relative w-8 h-8 rounded-full ${avatarBg} text-white flex items-center justify-center font-bold text-xs flex-shrink-0 overflow-hidden">
-                            ${miniAvatar}
-                        </div>
-                        <div class="overflow-hidden">
-                            <div class="flex items-center space-x-1">
-                                <span class="w-2 h-2 rounded-full flex-shrink-0 ${u.role === 'ADMIN' ? 'bg-red-600' : 'bg-green-500'}"></span>
-                                ${genderIcon}
-                                <span class="text-sm ${nickClass} truncate hover:underline">${u.nick}</span>
-                                ${u.age ? `<span class="text-[10px] text-slate-400">(${u.age})</span>` : ''}
-                            </div>
-                            <div class="text-[10px] text-slate-400 truncate">${u.status ? u.status : u.location}</div>
-                        </div>
-                    </div>
-                    <div class="flex items-center space-x-1 flex-shrink-0">
-                        ${!isMe ? `<button onclick="openRpToUser('${u.uid}', '${u.nick}')" title="Poslať RP" class="text-slovakia-blue hover:text-slovakia-red text-xs p-1"><i class="fa-solid fa-envelope"></i></button>` : ''}
-                    </div>
-                </div>
-            `}).join('');
-        }
-
-        window.renderStretko = function() {
-            const filterEl = document.getElementById('stretkoFilter');
-            const grid = document.getElementById('stretkoGrid');
-            if (!filterEl || !grid) return;
-            const filter = filterEl.value;
-            let filtered = usersDB;
-
-            if (filter === 'online') {
-                const onlineUids = new Set(getOnlineUsers().map(x => x.uid));
-                filtered = usersDB.filter(u => onlineUids.has(u.uid));
-            } else if (filter === 's_fotkou') {
-                filtered = usersDB.filter(u => Boolean(u.photoData));
-            } else if (filter === 'žena' || filter === 'muž') {
-                filtered = usersDB.filter(u => u.gender === filter);
-            } else if (filter === 'zahraničie') {
-                filtered = usersDB.filter(u => (u.location || '').includes('UK') || (u.location || '').includes('Česká') || (u.location || '').includes('Nemecko'));
-            } else if (filter !== 'všetci') {
-                filtered = usersDB.filter(u => u.location === filter);
-            }
-
-            grid.innerHTML = filtered.map(u => {
-                const isMe = currentUser && u.uid === currentUser.uid;
-                const cardBorder = u.gender === 'žena' ? 'border-pink-200 bg-pink-50/40' : 'border-slate-200 bg-slate-50';
-                const nameColor = u.gender === 'žena' ? 'text-pink-700' : 'text-slovakia-blue';
-                const avatarBg = u.gender === 'žena' ? 'bg-pink-600' : 'bg-slovakia-blue';
-                const photoHtml = u.photoData
-                    ? `<img src="${u.photoData}" alt="${u.nick}" class="w-full h-full object-cover">`
-                    : `${(u.nick || 'U').charAt(0).toUpperCase()}`;
-                const bioPreview = u.bio || u.status || (isMe ? 'Klikni na svoj profil hore a pridaj si fotku alebo popis o sebe.' : 'Hľadá nových priateľov a pokec v komunite.');
-                return `
-                <div class="border ${cardBorder} rounded-xl p-4 flex flex-col justify-between shadow-sm hover:shadow transition">
-                    <div>
-                        <div class="flex items-start space-x-3 mb-3">
-                            <div onclick="${isMe ? 'openProfileModal()' : `openPublicProfile('${u.uid}')`}" class="w-14 h-14 rounded-full ${avatarBg} text-white flex items-center justify-center font-black text-xl flex-shrink-0 overflow-hidden border-2 border-white shadow cursor-pointer">
-                                ${photoHtml}
-                            </div>
-                            <div class="min-w-0 flex-1">
-                                <div class="flex items-center justify-between gap-1">
-                                    <span onclick="${isMe ? 'openProfileModal()' : `openPublicProfile('${u.uid}')`}" class="font-bold ${nameColor} text-base truncate cursor-pointer hover:underline">${u.nick}</span>
-                                    <span class="text-[10px] bg-blue-100 text-slovakia-blue px-2 py-0.5 rounded font-semibold flex-shrink-0">${u.location}</span>
-                                </div>
-                                <div class="mt-1">${getGenderBadge(u.gender, u.age)}</div>
-                                ${u.status ? `<p class="text-[11px] italic text-slate-600 mt-1 truncate">"${u.status}"</p>` : ''}
-                            </div>
-                        </div>
-                        <p class="text-xs text-slate-600 mb-4 line-clamp-2">${bioPreview}</p>
-                    </div>
-                    ${!isMe 
-                        ? `<div class="flex gap-2">
-                            <button onclick="openPublicProfile('${u.uid}')" class="px-3 py-2 rounded-lg border border-slate-300 bg-white text-slate-700 text-xs font-bold hover:bg-slate-100 transition">Profil</button>
-                            <button onclick="openRpToUser('${u.uid}', '${u.nick}')" class="flex-1 bg-slovakia-blue text-white py-2 rounded-lg text-xs font-bold hover:bg-opacity-90 transition"><i class="fa-solid fa-paper-plane mr-1.5"></i>Poslať RP</button>
-                           </div>`
-                        : `<button onclick="openProfileModal()" class="w-full text-center py-2 rounded-lg text-xs font-bold text-slovakia-blue bg-blue-100/80 hover:bg-blue-200/80 transition"><i class="fa-solid fa-pen mr-1"></i>Upraviť môj profil</button>`
-                    }
-                </div>
-            `}).join('');
-        };
-
-        // ================= SÚKROMNÉ SPRÁVY (RP) FUNKCIE =================
-        let pendingRpPostContext = null;
-
-        window.openRpToUser = function(targetUid, targetNick, postContext = null) {
-            if (!currentUser) return;
-            if (!targetUid || targetUid === currentUser.uid) return;
-
-            pendingRpPostContext = postContext;
-            activeRpPartnerUid = targetUid;
-            switchSection('messages');
-
-            const titleEl = document.getElementById('rpActivePartnerNick');
-            const subEl = document.getElementById('rpActivePartnerSub');
-            const formEl = document.getElementById('rpReplyForm');
-            const replyInput = document.getElementById('rpReplyInput');
-            const onlineUser = usersDB.find(u => u.uid === targetUid);
-            const resolvedNick = (onlineUser && onlineUser.nick) || targetNick || 'Člen';
-
-            if (titleEl) titleEl.innerText = `Konverzácia s: ${resolvedNick}`;
-            if (subEl) subEl.innerText = onlineUser ? `Online • ${onlineUser.location}` : 'Súkromná pošta (RP)';
-            if (formEl) formEl.classList.remove('hidden');
-            if (replyInput) {
-                if (postContext && postContext.title) {
-                    const label = postContext.type === 'bazar' ? 'inzerátu' : 'ponuke spolujazdy';
-                    replyInput.value = `Ahoj, píšem ti ohľadom tvojho ${label}: "${postContext.title}" — `;
-                }
-                replyInput.focus();
-            }
-
-            renderRpConversation(targetUid);
-        };
-
-        window.openNewRpModal = function(preselectUid = null, preselectNick = null, postContext = null) {
-            if (!currentUser) return;
-            const select = document.getElementById('rpRecipientSelect');
-            const otherUsers = usersDB.filter(u => u.uid !== currentUser.uid);
-
-            let optionsHtml = otherUsers.map(u => 
-                `<option value="${u.uid}" data-nick="${u.nick}" ${u.uid === preselectUid ? 'selected' : ''}>${u.nick} (${u.location})</option>`
-            ).join('');
-
-            if (preselectUid && !otherUsers.some(u => u.uid === preselectUid)) {
-                optionsHtml = `<option value="${preselectUid}" data-nick="${preselectNick || 'Člen'}" selected>${preselectNick || 'Člen'}</option>` + optionsHtml;
-            }
-
-            if (!optionsHtml) {
-                alert("Momentálne nie sú online žiadni ďalší členovia, ktorým by si mohol poslať správu.");
-                return;
-            }
-
-            pendingRpPostContext = postContext;
-            select.innerHTML = optionsHtml;
-            const textArea = document.getElementById('rpModalText');
-            if (postContext && postContext.title) {
-                const label = postContext.type === 'bazar' ? 'inzerátu' : 'ponuke spolujazdy';
-                textArea.value = `Ahoj, píšem ti ohľadom tvojho ${label}: "${postContext.title}" — `;
-            } else {
-                textArea.value = '';
-            }
-            document.getElementById('rpModal').classList.remove('hidden');
-        };
-
-        window.closeRpModal = function() {
-            document.getElementById('rpModal').classList.add('hidden');
-        };
-
-        window.submitRpModal = async function(e) {
-            e.preventDefault();
-            if (!currentUser) return;
-            const select = document.getElementById('rpRecipientSelect');
-            const recipientUid = select.value;
-            const selectedOption = select.options[select.selectedIndex];
-            const recipientNick = selectedOption ? selectedOption.getAttribute('data-nick') : 'Člen';
-            const text = document.getElementById('rpModalText').value.trim();
-            const btn = document.getElementById('rpModalSubmitBtn');
-
-            if (!recipientUid || !text) return;
-
-            btn.disabled = true;
-            btn.innerText = "Odosielam...";
-
-            try {
-                const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                const payload = {
-                    fromUid: currentUser.uid,
-                    fromNick: currentUser.nick,
-                    toUid: recipientUid,
-                    toNick: recipientNick,
-                    participants: [currentUser.uid, recipientUid],
-                    text: text,
-                    time: time,
-                    read: false,
-                    createdAtMs: Date.now(),
-                    timestamp: serverTimestamp()
-                };
-                if (pendingRpPostContext && pendingRpPostContext.title) {
-                    payload.postRef = {
-                        type: pendingRpPostContext.type || 'spolujazda',
-                        title: pendingRpPostContext.title,
-                        desc: pendingRpPostContext.desc || ''
-                    };
-                }
-                await addDoc(collection(db, "private_messages"), payload);
-
-                pendingRpPostContext = null;
-                closeRpModal();
-                activeRpPartnerUid = recipientUid;
-                switchSection('messages');
-                renderRpConversation(recipientUid);
-            } catch (err) {
-                console.error("Chyba pri odosielaní RP:", err);
-                alert("Nepodarilo sa odoslať súkromnú správu. Skontroluj pripojenie k Firestore.");
-            } finally {
-                btn.disabled = false;
-                btn.innerText = "Odoslať RP";
-            }
-        };
-
-        function updateUnreadRpBadge() {
-            if (!currentUser) return;
-            const unreadCount = privateMessagesDB.filter(m => m.toUid === currentUser.uid && !m.read).length;
-            const badge = document.getElementById('unreadRpBadge');
-            const mobBadge = document.getElementById('mobileUnreadRpBadge');
-            const mobDot = document.getElementById('mobileUnreadRpDot');
-            if (badge) {
-                if (unreadCount > 0) {
-                    badge.innerText = unreadCount;
-                    badge.classList.remove('hidden');
-                } else {
-                    badge.classList.add('hidden');
-                }
-            }
-            if (mobBadge) {
-                if (unreadCount > 0) {
-                    mobBadge.innerText = unreadCount;
-                    mobBadge.classList.remove('hidden');
-                } else {
-                    mobBadge.classList.add('hidden');
-                }
-            }
-            if (mobDot) {
-                if (unreadCount > 0) mobDot.classList.remove('hidden');
-                else mobDot.classList.add('hidden');
-            }
-        }
-
-        function renderRpThreads() {
-            const listEl = document.getElementById('rpThreadsList');
-            if (!listEl || !currentUser) return;
-
-            const threadsMap = {};
-            const blockedSet = getBlockedUserSet();
-            privateMessagesDB.forEach(m => {
-                const partnerUid = m.fromUid === currentUser.uid ? m.toUid : m.fromUid;
-                if (blockedSet.has(partnerUid)) return;
-                const partnerNick = m.fromUid === currentUser.uid ? m.toNick : m.fromNick;
-                if (!threadsMap[partnerUid]) {
-                    threadsMap[partnerUid] = {
-                        partnerUid,
-                        partnerNick: partnerNick || 'Člen',
-                        lastMessage: m.text,
-                        lastPostRef: m.postRef || null,
-                        lastTime: m.time || '',
-                        lastMs: m.createdAtMs || 0,
-                        unread: 0
-                    };
-                }
-                if ((m.createdAtMs || 0) >= threadsMap[partnerUid].lastMs) {
-                    threadsMap[partnerUid].lastMessage = m.text;
-                    threadsMap[partnerUid].lastPostRef = m.postRef || null;
-                    threadsMap[partnerUid].lastTime = m.time || '';
-                    threadsMap[partnerUid].lastMs = m.createdAtMs || 0;
-                    if (partnerNick) threadsMap[partnerUid].partnerNick = partnerNick;
-                }
-                if (m.toUid === currentUser.uid && !m.read) {
-                    threadsMap[partnerUid].unread += 1;
-                }
-            });
-
-            const threads = Object.values(threadsMap).sort((a, b) => b.lastMs - a.lastMs);
-
-            if (threads.length === 0) {
-                listEl.innerHTML = `<div class="p-6 text-center text-xs text-slate-400">Zatiaľ nemáš žiadne prijaté ani odoslané RP správy.<br><br>Klikni na <b>+ Nová</b> alebo na člena v sekcii <b>Stretko</b>.</div>`;
-                return;
-            }
-
-            listEl.innerHTML = threads.map(t => {
-                const isSelected = t.partnerUid === activeRpPartnerUid;
-                return `
-                <button onclick="selectRpThread('${t.partnerUid}')" class="w-full text-left p-3.5 transition flex items-start justify-between ${isSelected ? 'bg-blue-50 border-l-4 border-slovakia-blue' : 'hover:bg-white'}">
-                    <div class="flex items-center space-x-2.5 overflow-hidden">
-                        <div class="w-9 h-9 rounded-full bg-slovakia-blue text-white flex-shrink-0 flex items-center justify-center font-bold text-xs">${t.partnerNick.charAt(0).toUpperCase()}</div>
-                        <div class="overflow-hidden">
-                            <div class="font-bold text-sm text-slovakia-blue truncate">${t.partnerNick}</div>
-                            ${t.lastPostRef && t.lastPostRef.title ? `<div class="text-[10px] font-bold text-slovakia-red truncate">${t.lastPostRef.type === 'bazar' ? '🏷️ Bazár: ' : '🚗 Spolujazda: '}${t.lastPostRef.title}</div>` : ''}
-                            <p class="text-xs text-slate-500 truncate">${t.lastMessage}</p>
-                        </div>
-                    </div>
-                    <div class="flex flex-col items-end ml-2 flex-shrink-0">
-                        <span class="text-[10px] text-slate-400">${t.lastTime}</span>
-                        ${t.unread > 0 ? `<span class="mt-1 bg-red-600 text-white text-[10px] px-1.5 py-0.2 rounded-full font-bold">${t.unread}</span>` : ''}
-                    </div>
-                </button>
-            `}).join('');
-        }
-
-        window.selectRpThread = function(partnerUid) {
-            activeRpPartnerUid = partnerUid;
-            renderRpThreads();
-            renderRpConversation(partnerUid);
-        };
-
-        async function renderRpConversation(partnerUid) {
-            if (!currentUser) return;
-            const feedEl = document.getElementById('rpChatFeed');
-            const titleEl = document.getElementById('rpActivePartnerNick');
-            const subEl = document.getElementById('rpActivePartnerSub');
-            const formEl = document.getElementById('rpReplyForm');
-
-            const convo = privateMessagesDB.filter(m => 
-                (m.fromUid === currentUser.uid && m.toUid === partnerUid) ||
-                (m.fromUid === partnerUid && m.toUid === currentUser.uid)
-            );
-
-            let partnerNick = 'Člen';
-            const onlineUser = usersDB.find(u => u.uid === partnerUid);
-            if (onlineUser) {
-                partnerNick = onlineUser.nick;
-            } else if (convo.length > 0) {
-                const sample = convo[convo.length - 1];
-                partnerNick = sample.fromUid === partnerUid ? sample.fromNick : sample.toNick;
-            }
-
-            titleEl.innerText = `Konverzácia s: ${partnerNick}`;
-            subEl.innerText = onlineUser ? `Online • ${onlineUser.location}` : 'Súkromná pošta (RP)';
-            formEl.classList.remove('hidden');
-
-            for (const m of convo) {
-                if (m.toUid === currentUser.uid && !m.read && m.id) {
-                    try {
-                        await updateDoc(doc(db, "private_messages", m.id), { read: true });
-                    } catch (e) {}
-                }
-            }
-
-            if (convo.length === 0) {
-                feedEl.innerHTML = `<div class="text-center text-xs text-slate-400 py-8">Začni konverzáciu s používateľom ${partnerNick}.</div>`;
-                return;
-            }
-
-            feedEl.innerHTML = convo.map(m => {
-                const isMine = m.fromUid === currentUser.uid;
-                const ref = m.postRef;
-                const refBadgeLabel = ref && ref.type === 'bazar' ? 'Odpoveď na inzerát z Bazára' : 'Odpoveď na ponuku Spolujazdy';
-                const refHtml = ref && ref.title ? `
-                    <div class="mb-2 px-3 py-2 rounded-lg text-xs border-l-4 ${isMine ? 'bg-blue-950/70 border-amber-300 text-blue-100' : 'bg-slate-100 border-slovakia-red text-slate-700'}">
-                        <div class="font-bold uppercase tracking-wider text-[10px] ${isMine ? 'text-amber-300' : 'text-slovakia-red'} mb-0.5">${refBadgeLabel}</div>
-                        <div class="font-bold">${ref.title}</div>
-                        ${ref.desc ? `<div class="text-[11px] opacity-85 line-clamp-2 mt-0.5">${ref.desc}</div>` : ''}
-                    </div>
-                ` : '';
-                return `
-                <div class="flex ${isMine ? 'justify-end' : 'justify-start'}">
-                    <div class="max-w-md rounded-2xl px-4 py-2.5 shadow-sm ${isMine ? 'bg-slovakia-blue text-white rounded-br-none' : 'bg-white border border-slate-200 text-slate-800 rounded-bl-none'}">
-                        <div class="flex items-center justify-between gap-4 mb-1">
-                            <span class="text-[11px] font-bold ${isMine ? 'text-blue-200' : 'text-slovakia-blue'}">${isMine ? 'Ja' : m.fromNick}</span>
-                            <span class="text-[10px] ${isMine ? 'text-blue-200' : 'text-slate-400'}">${m.time || ''}</span>
-                        </div>
-                        ${refHtml}
-                        <p class="text-sm whitespace-pre-wrap">${m.text}</p>
-                    </div>
-                </div>
-            `}).join('');
-            feedEl.scrollTop = feedEl.scrollHeight;
-        }
-
-        window.sendRpReply = async function(e) {
-            e.preventDefault();
-            if (!currentUser || !activeRpPartnerUid) return;
-            const input = document.getElementById('rpReplyInput');
-            const text = input.value.trim();
-            if (!text) return;
-
-            const onlineUser = usersDB.find(u => u.uid === activeRpPartnerUid);
-            const partnerNick = onlineUser ? onlineUser.nick : (document.getElementById('rpActivePartnerNick').innerText.replace('Konverzácia s: ', '') || 'Člen');
-            const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-            const postRefToAttach = (pendingRpPostContext && pendingRpPostContext.title)
-                ? {
-                    type: pendingRpPostContext.type || 'spolujazda',
-                    title: pendingRpPostContext.title,
-                    desc: pendingRpPostContext.desc || ''
-                }
-                : null;
-            pendingRpPostContext = null;
-            input.value = '';
-            try {
-                const payload = {
-                    fromUid: currentUser.uid,
-                    fromNick: currentUser.nick,
-                    toUid: activeRpPartnerUid,
-                    toNick: partnerNick,
-                    participants: [currentUser.uid, activeRpPartnerUid],
-                    text: text,
-                    time: time,
-                    read: false,
-                    createdAtMs: Date.now(),
-                    timestamp: serverTimestamp()
-                };
-                if (postRefToAttach) {
-                    payload.postRef = postRefToAttach;
-                }
-                await addDoc(collection(db, "private_messages"), payload);
-            } catch (err) {
-                console.error("Chyba pri odoslaní odpovede:", err);
-                alert("Nepodarilo sa odoslať správu.");
-            }
-        };
-
-        function listenCommunityPosts() {
-            if (unsubscribeCommunityPosts) unsubscribeCommunityPosts();
-            unsubscribeCommunityPosts = onSnapshot(collection(db, "community_posts"), (snapshot) => {
-                const spolujazda = [];
-                const bazar = [];
-                snapshot.forEach((docSnap) => {
-                    const item = { id: docSnap.id, ...docSnap.data() };
-                    if (item.type === 'bazar') {
-                        bazar.push(item);
-                    } else {
-                        spolujazda.push(item);
-                    }
-                });
-                spolujazda.sort((a, b) => (b.createdAtMs || 0) - (a.createdAtMs || 0));
-                bazar.sort((a, b) => (b.createdAtMs || 0) - (a.createdAtMs || 0));
-                postsDB.spolujazda = spolujazda;
-                postsDB.bazar = bazar;
-                renderCommunityPosts();
-            }, (err) => {
-                console.error("Chyba pri načítaní príspevkov z Firestore:", err);
-            });
-        }
-
-        let pendingPostPhotoData = "";
-
-        function clearPostPhoto() {
-            pendingPostPhotoData = "";
-            const input = document.getElementById('postPhotoInput');
-            const previewWrap = document.getElementById('postPhotoPreviewWrap');
-            const previewImg = document.getElementById('postPhotoPreviewImg');
-            const clearBtn = document.getElementById('clearPostPhotoBtn');
-            const nameEl = document.getElementById('postPhotoName');
-            if (input) input.value = "";
-            if (previewImg) previewImg.src = "";
-            if (previewWrap) previewWrap.classList.add('hidden');
-            if (clearBtn) clearBtn.classList.add('hidden');
-            if (nameEl) nameEl.innerText = "Žiadna fotka";
-        }
-        window.clearPostPhoto = clearPostPhoto;
-
-        window.handlePostPhotoSelect = function(e) {
-            const file = e.target.files && e.target.files[0];
-            if (!file) return;
-            if (!file.type.startsWith('image/')) {
-                alert("Vyber prosím obrázok (JPG, PNG, WebP).");
-                return;
-            }
-            const reader = new FileReader();
-            reader.onload = function(evt) {
-                const img = new Image();
-                img.onload = function() {
-                    const maxDim = 640;
-                    let w = img.width;
-                    let h = img.height;
-                    if (w > h) {
-                        if (w > maxDim) { h = Math.round(h * maxDim / w); w = maxDim; }
-                    } else {
-                        if (h > maxDim) { w = Math.round(w * maxDim / h); h = maxDim; }
-                    }
-                    const canvas = document.createElement('canvas');
-                    canvas.width = w;
-                    canvas.height = h;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, w, h);
-                    pendingPostPhotoData = canvas.toDataURL('image/jpeg', 0.78);
-                    const previewWrap = document.getElementById('postPhotoPreviewWrap');
-                    const previewImg = document.getElementById('postPhotoPreviewImg');
-                    const clearBtn = document.getElementById('clearPostPhotoBtn');
-                    const nameEl = document.getElementById('postPhotoName');
-                    if (previewImg) previewImg.src = pendingPostPhotoData;
-                    if (previewWrap) previewWrap.classList.remove('hidden');
-                    if (clearBtn) clearBtn.classList.remove('hidden');
-                    if (nameEl) nameEl.innerText = file.name;
-                };
-                img.src = evt.target.result;
-            };
-            reader.readAsDataURL(file);
-        };
-
-        window.openAddPostModal = function(type) {
-            if (!currentUser) return;
-            document.getElementById('postModalType').value = type || 'bazar';
-            document.getElementById('postModalTitle').innerText = type === 'bazar' ? 'Pridať inzerát do Bazára' : 'Pridať ponuku Spolujazdy';
-            document.getElementById('postModalSub').innerText = type === 'bazar'
-                ? 'Môžeš pridať názov, popis aj fotku ponúkanej veci.'
-                : 'Zadaj trasu, dátum/čas alebo dôležité info pre spolucestujúcich.';
-            document.getElementById('postTitleInput').value = '';
-            document.getElementById('postDescInput').value = '';
-            clearPostPhoto();
-            document.getElementById('postModal').classList.remove('hidden');
-        };
-
-        window.closePostModal = function() {
-            document.getElementById('postModal').classList.add('hidden');
-        };
-
-        window.submitPostModal = async function(e) {
-            e.preventDefault();
-            if (!currentUser) return;
-            const type = document.getElementById('postModalType').value || 'bazar';
-            const title = document.getElementById('postTitleInput').value.trim();
-            const desc = document.getElementById('postDescInput').value.trim();
-            const btn = document.getElementById('postModalSubmitBtn');
-            if (!title || !desc) return;
-
-            btn.disabled = true;
-            btn.innerText = "Ukladám...";
-            try {
-                const payload = {
-                    type: type,
-                    title: title,
-                    desc: desc,
-                    author: currentUser.nick,
-                    authorUid: currentUser.uid,
-                    contact: "RP",
-                    createdAtMs: Date.now(),
-                    timestamp: serverTimestamp()
-                };
-                if (pendingPostPhotoData) {
-                    payload.photoData = pendingPostPhotoData;
-                }
-                await addDoc(collection(db, "community_posts"), payload);
-                closePostModal();
-            } catch (err) {
-                console.error("Chyba pri ukladaní príspevku:", err);
-                alert("Nepodarilo sa uložiť príspevok do Firestore.");
-            } finally {
-                btn.disabled = false;
-                btn.innerText = "Uverejniť";
-            }
-        };
-
-        function renderPostCard(p) {
-            const canDelete = currentUser && ((p.authorUid && p.authorUid === currentUser.uid) || currentUser.email === ADMIN_EMAIL);
-            const deleteBtn = canDelete && p.id
-                ? `<button onclick="deleteCommunityPost('${p.id}')" title="Zmazať príspevok" class="text-slate-400 hover:text-red-600 text-xs ml-1.5 transition"><i class="fa-solid fa-trash"></i></button>`
-                : '';
-            const resolvedAuthorUid = p.authorUid || (usersDB.find(u => u.nick === p.author)?.uid) || '';
-            const safeTitle = String(p.title || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
-            const safeDesc = String(p.desc || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
-            const safeAuthor = String(p.author || 'Člen').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-            const safeType = String(p.type || 'spolujazda').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-            const reportBtn = currentUser && resolvedAuthorUid && resolvedAuthorUid !== currentUser.uid
-                ? `<button type="button" onclick="openReportModal('${resolvedAuthorUid}', '${safeAuthor}', '${safeType}: ${safeTitle}')" title="Nahlásiť príspevok" class="text-slate-300 hover:text-slovakia-red text-xs ml-1.5 transition"><i class="fa-regular fa-flag"></i></button>`
-                : '';
-            const rpAction = currentUser && resolvedAuthorUid && resolvedAuthorUid !== currentUser.uid
-                ? `<button type="button" onclick="openRpToUser('${resolvedAuthorUid}', '${safeAuthor}', { type: '${safeType}', title: '${safeTitle}', desc: '${safeDesc}' })" class="text-slovakia-red hover:underline font-bold cursor-pointer">Kontakt: RP</button>`
-                : `<span class="text-slovakia-red font-bold">Kontakt: ${p.contact || 'RP'}</span>`;
-
-            const photoHtml = p.photoData
-                ? `<div class="mt-2 rounded-lg overflow-hidden border border-slate-200 bg-slate-50"><img src="${p.photoData}" alt="${safeTitle}" class="w-full max-h-52 object-cover"></div>`
-                : '';
-
-            return `
-                <div class="bg-white p-3 rounded-lg border text-sm shadow-sm">
-                    <div class="flex items-start justify-between gap-2">
-                        <div class="font-bold text-slovakia-blue">${p.title}</div>
-                        <div class="flex items-center flex-shrink-0">${reportBtn}${deleteBtn}</div>
-                    </div>
-                    <p class="text-xs text-slate-600 mt-1 whitespace-pre-wrap">${p.desc}</p>
-                    ${photoHtml}
-                    <div class="flex justify-between items-center mt-2 pt-2 border-t border-slate-100 text-xs text-slate-400">
-                        <span>Od: <strong class="text-slate-600">${p.author}</strong></span>
-                        ${rpAction}
-                    </div>
-                </div>
-            `;
-        }
-
-        function renderCommunityPosts() {
-            const spList = document.getElementById('spolujazdaList');
-            const bazList = document.getElementById('bazarList');
-            if (!spList || !bazList) return;
-
-            spList.innerHTML = postsDB.spolujazda.length
-                ? postsDB.spolujazda.map(renderPostCard).join('')
-                : `<div class="p-4 text-center text-xs text-slate-400 bg-white rounded-lg border border-dashed">Zatiaľ tu nie sú žiadne ponuky spolujazdy.</div>`;
-
-            bazList.innerHTML = postsDB.bazar.length
-                ? postsDB.bazar.map(renderPostCard).join('')
-                : `<div class="p-4 text-center text-xs text-slate-400 bg-white rounded-lg border border-dashed">Zatiaľ tu nie sú žiadne inzeráty.</div>`;
-        }
-
-        window.deleteCommunityPost = async function(postId) {
-            if (!currentUser || !postId) return;
-            if (!confirm("Naozaj chceš zmazať tento príspevok?")) return;
-            try {
-                await deleteDoc(doc(db, "community_posts", postId));
-            } catch (err) {
-                console.error("Chyba pri mazaní príspevku:", err);
-                alert("Nepodarilo sa zmazať príspevok.");
-            }
-        };
-
-        // ================= KVÍZ + TOP 5 =================
-        const quizData = [
-            { q: "Aké je hlavné mesto Slovenska?", options: ["Košice", "Bratislava", "Žilina", "Nitra"], correct: 1 },
-            { q: "Ktorá rieka preteká cez Bratislavu?", options: ["Hron", "Dunaj", "Váh", "Tisa"], correct: 1 },
-            { q: "Aká je najvyššia hora na Slovensku?", options: ["Kriváň", "Gerlachovský štít", "Chopok", "Lomnický štít"], correct: 1 },
-            { q: "Ktoré mesto je známe ako mesto východu a má Dóm svätej Alžbety?", options: ["Prešov", "Košice", "Poprad", "Michalovce"], correct: 1 },
-            { q: "Ktorý hrad sa týči nad mestom Trenčín?", options: ["Oravský hrad", "Beckov", "Trenčiansky hrad", "Spišský hrad"], correct: 2 },
-            { q: "Ktorý národný park je najstarší na Slovensku?", options: ["TANAP", "NAPANT", "Slovenský raj", "Pieniny"], correct: 0 },
-            { q: "Z čoho sa tradične robia pravé bryndzové halušky?", options: ["Z ryže a tvarohu", "Zo zemiakov, múky a bryndze", "Z krupice a smotany", "Z cestovín a syra"], correct: 1 },
-            { q: "Ktorá rieka je najdlhšia na Slovensku?", options: ["Hron", "Nitrianska rieka", "Váh", "Morava"], correct: 2 },
-            { q: "Kde sa nachádza Demänovská ľadová jaskyňa?", options: ["V Nízkych Tatrách", "Vo Vysokých Tatrách", "V Malých Karpatoch", "V Slovenskom raji"], correct: 0 },
-            { q: "Ktoré mesto je známe svojím gotickým kostolom sv. Jakuba a oltárom Majstra Pavla?", options: ["Bardejov", "Levoča", "Kežmarok", "Banská Štiavnica"], correct: 1 },
-            { q: "Ktorý vrch je jedným zo symbolov Slovenska a nachádza sa vo Vysokých Tatrách?", options: ["Kriváň", "Sitno", "Kľak", "Poľana"], correct: 0 },
-            { q: "Ktoré slovenské mesto bolo v minulosti významným banským centrom striebra a zlata?", options: ["Martin", "Banská Štiavnica", "Zvolen", "Piešťany"], correct: 1 }
-        ];
-
-        let currentQuizIndex = 0;
-        let currentSessionQuizScore = 0;
-
-        function loadQuizQuestion() {
-            const q = quizData[currentQuizIndex];
-            const qEl = document.getElementById('quizQuestion');
-            if (!qEl) return;
-            qEl.innerText = `${currentQuizIndex + 1}/${quizData.length}: ${q.q}`;
-            const optContainer = document.getElementById('quizOptions');
-            optContainer.innerHTML = q.options.map((opt, idx) => `
-                <button onclick="answerQuiz(${idx})" class="w-full text-left p-3 rounded-lg border hover:bg-blue-50 font-medium text-sm transition">${opt}</button>
-            `).join('');
-            document.getElementById('quizResult').classList.add('hidden');
-        }
-
-        window.answerQuiz = async function(idx) {
-            const q = quizData[currentQuizIndex];
-            const res = document.getElementById('quizResult');
-            res.classList.remove('hidden');
-
-            if (idx === q.correct) {
-                currentSessionQuizScore += 10;
-                res.innerText = "Správne! +10 bodov 🎉";
-                res.className = "text-lg font-bold text-green-600 mt-4";
-            } else {
-                res.innerText = `Nesprávne. Správna odpoveď: ${q.options[q.correct]}`;
-                res.className = "text-lg font-bold text-slovakia-red mt-4";
-            }
-
-            if (currentUser) {
-                const prevBest = Number(localStorage.getItem('tcka_quiz_' + currentUser.uid) || currentUser.quizScore || 0);
-                const bestScore = Math.max(prevBest, currentSessionQuizScore);
-                currentUser.quizScore = bestScore;
-                localStorage.setItem('tcka_quiz_' + currentUser.uid, String(bestScore));
-                try {
-                    await updateDoc(doc(db, "users", currentUser.uid), {
-                        quizScore: bestScore
-                    });
-                } catch (e) {}
-            }
-
-            renderQuizLeaderboard();
-
-            setTimeout(() => {
-                currentQuizIndex = (currentQuizIndex + 1) % quizData.length;
-                loadQuizQuestion();
-            }, 1800);
-        };
-
-        function renderQuizLeaderboard() {
-            const listEl = document.getElementById('quizLeaderboardList');
-            const myBadge = document.getElementById('myQuizScoreBadge');
-            if (!listEl) return;
-
-            const myBest = currentUser
-                ? Math.max(Number(currentUser.quizScore || 0), Number(localStorage.getItem('tcka_quiz_' + currentUser.uid) || 0))
-                : 0;
-            if (myBadge) myBadge.innerText = `Najviac bodov: ${myBest}`;
-
-            const top5 = [...usersDB]
-                .map(u => ({
-                    nick: u.nick || 'Člen',
-                    score: Number(u.quizScore || 0)
-                }))
-                .filter(x => x.score > 0)
-                .sort((a, b) => b.score - a.score)
-                .slice(0, 5);
-
-            if (top5.length === 0) {
-                listEl.innerHTML = `<div class="text-slate-400">Zatiaľ nikto nemá zapísané body. Odpovedz správne a buď prvý!</div>`;
-                return;
-            }
-
-            listEl.innerHTML = top5.map((item, idx) => `
-                <div class="flex items-center justify-between bg-white px-3 py-1.5 rounded-lg border border-slate-100">
-                    <span class="font-bold text-slate-700">${idx + 1}. ${item.nick}</span>
-                    <span class="font-black text-slovakia-blue">${item.score} b</span>
-                </div>
-            `).join('');
-        }
-
-        // ================= VTIPY, CITÁTY & NÁHODNÝ PARŤÁK =================
-        const SLOVAK_JOKES = [
-            { cat: "Zábava", text: "Príde Bača do banky a vraví: Chcel by som si požičať milión eur. Úradník sa pousmeje: A čím budete ručiť? Bača ukáže na barana: Týmto! A čo keď zdochne? Tak vám poviem, že už nevládze." },
-            { cat: "Zábava", text: "Stretnú sa dvaja východniari v Londýne. Jano sa pýta: Fero, a ty tu už robíš dlho? Fero: Od pondelka. Jano: A to ti už tak dobre ide po anglicky?" },
-            { cat: "Život", text: "Doktor hovorí pacientovi: Musíte prestať piť kávu, fajčiť a jesť vyprážané. Pacient sa zamyslí: A keď to všetko dodržím, budem žiť dlhšie? Doktor: Možno nie dlhšie, ale bude sa vám to tak zdať." },
-            { cat: "Zábava", text: "Prečo má počítač vždy chladnú hlavu? Lebo má stále zapnuté chladenie a žiadne emócie!" },
-            { cat: "Život", text: "Hovorí manželka mužovi: Drahý, dnes som upiekla koláč a zjedla som ho celý. Muž na to: To je super, aspoň nemusím umývať plech!" }
-        ];
-
-        const SLOVAK_QUOTES = [
-            { author: "Milan Rúfus", text: "Človek je taký veľký, aký veľký je jeho súcit a láska k druhému." },
-            { author: "Slovenské príslovie", text: "Kto chce kam, pomôžme mu tam." },
-            { author: "Slovenské príslovie", text: "Ráno múdrejšie večera." },
-            { author: "Ján Werich", text: "Keď už človek nevie kam, mal by sa aspoň pozrieť, odkiaľ prišiel." },
-            { author: "Slovenské príslovie", text: "Bez práce nie sú koláče." }
-        ];
-
-        let currentJokeIndex = 0;
-        let currentQuoteIndex = 0;
-
-        function renderJokeCard() {
-            const j = SLOVAK_JOKES[currentJokeIndex];
-            const textEl = document.getElementById('jokeText');
-            const catEl = document.getElementById('jokeCategoryBadge');
-            if (textEl) textEl.innerText = j.text;
-            if (catEl) catEl.innerText = j.cat;
-        }
-
-        function renderQuoteCard() {
-            const q = SLOVAK_QUOTES[currentQuoteIndex];
-            const textEl = document.getElementById('quoteText');
-            const authEl = document.getElementById('quoteAuthorBadge');
-            if (textEl) textEl.innerText = `„${q.text}“`;
-            if (authEl) authEl.innerText = q.author;
-        }
-
-        function initJokesAndQuotes() {
-            renderJokeCard();
-            renderQuoteCard();
-        }
-
-        window.nextJoke = function() {
-            currentJokeIndex = (currentJokeIndex + 1) % SLOVAK_JOKES.length;
-            renderJokeCard();
-        };
-
-        window.nextQuote = function() {
-            currentQuoteIndex = (currentQuoteIndex + 1) % SLOVAK_QUOTES.length;
-            renderQuoteCard();
-        };
-
-        window.shareJokeToChat = async function() {
-            if (!currentUser) return;
-            const j = SLOVAK_JOKES[currentJokeIndex];
-            const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            try {
-                await addDoc(collection(db, "rooms", currentRoom, "messages"), {
-                    uid: currentUser.uid,
-                    nick: currentUser.nick,
-                    gender: currentUser.gender || 'neuvedené',
-                    age: currentUser.age || '',
-                    text: `😂 Vtip: ${j.text}`,
-                    time: time,
-                    role: currentUser.email === ADMIN_EMAIL ? 'ADMIN' : 'Člen',
-                    timestamp: serverTimestamp()
-                });
-                switchSection('chat');
-                shouldForceScrollToBottom = true;
-                scrollChatToBottom(true);
-            } catch (e) {
-                alert("Nepodarilo sa poslať vtip do chatu.");
-            }
-        };
-
-        window.shareQuoteToChat = async function() {
-            if (!currentUser) return;
-            const q = SLOVAK_QUOTES[currentQuoteIndex];
-            const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            try {
-                await addDoc(collection(db, "rooms", currentRoom, "messages"), {
-                    uid: currentUser.uid,
-                    nick: currentUser.nick,
-                    gender: currentUser.gender || 'neuvedené',
-                    age: currentUser.age || '',
-                    text: `💬 „${q.text}“ — ${q.author}`,
-                    time: time,
-                    role: currentUser.email === ADMIN_EMAIL ? 'ADMIN' : 'Člen',
-                    timestamp: serverTimestamp()
-                });
-                switchSection('chat');
-                shouldForceScrollToBottom = true;
-                scrollChatToBottom(true);
-            } catch (e) {
-                alert("Nepodarilo sa poslať citát do chatu.");
-            }
-        };
-
-        window.pickRandomBuddy = function() {
-            const resEl = document.getElementById('randomBuddyResult');
-            if (!resEl || !currentUser) return;
-            const candidates = usersDB.filter(u => u.uid && u.uid !== currentUser.uid);
-            if (!candidates.length) {
-                resEl.innerText = "Momentálne tu nie sú žiadni ďalší členovia na vylosovanie.";
-                return;
-            }
-            const buddy = candidates[Math.floor(Math.random() * candidates.length)];
-            const safeNick = String(buddy.nick || 'Člen').replace(/'/g, "&#39;");
-            resEl.innerHTML = `Vylosovaný člen: <strong class="text-slovakia-blue">${buddy.nick}</strong> (${buddy.location || 'Slovensko'}) — ` +
-                `<button type="button" onclick="openRpToUser('${buddy.uid}', '${safeNick}')" class="text-slovakia-red font-bold underline ml-1">Napísať RP</button>`;
-        };
-
-        // ================= ADMIN & HLÁSENIA =================
-        function listenReportsForAdmin() {
-            if (unsubscribeReports) unsubscribeReports();
-            unsubscribeReports = onSnapshot(collection(db, "reports"), (snapshot) => {
-                const items = [];
-                snapshot.forEach((docSnap) => {
-                    items.push({ id: docSnap.id, ...docSnap.data() });
-                });
-                items.sort((a, b) => (b.createdAtMs || 0) - (a.createdAtMs || 0));
-                reportsDB = items;
-                renderAdminReports();
-            }, (err) => {
-                console.error("Chyba pri načítaní hlásení:", err);
-            });
-        }
-
-        window.deleteReport = async function(reportId) {
-            if (!currentUser || currentUser.email !== ADMIN_EMAIL || !reportId) return;
-            try {
-                await deleteDoc(doc(db, "reports", reportId));
-            } catch (err) {
-                console.error("Chyba pri mazaní hlásenia:", err);
-                alert("Nepodarilo sa zmazať hlásenie.");
-            }
-        };
-
-        function renderAdminReports() {
-            const listEl = document.getElementById('adminReportsList');
-            const countEl = document.getElementById('adminReportsCount');
-            if (!listEl) return;
-            if (countEl) countEl.innerText = reportsDB.length;
-
-            if (!reportsDB.length) {
-                listEl.innerHTML = `<div class="text-xs text-slate-400 text-center py-4">Zatiaľ žiadne hlásenia.</div>`;
-                return;
-            }
-
-            listEl.innerHTML = reportsDB.map(r => {
-                const timeStr = r.createdAtMs ? new Date(r.createdAtMs).toLocaleString('sk-SK', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
-                return `
-                    <div class="bg-white border border-red-100 rounded-lg p-3 text-xs shadow-sm flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-                        <div class="space-y-1 min-w-0 flex-1">
-                            <div class="flex flex-wrap items-center gap-2">
-                                <span class="px-2 py-0.5 rounded bg-red-100 text-slovakia-red font-bold">${r.reason || 'Hlásenie'}</span>
-                                <span class="font-bold text-slovakia-blue">Nahlasovaný: ${r.targetNick || 'Člen'}</span>
-                                <span class="text-slate-400">• od: <strong>${r.reporterNick || 'Člen'}</strong></span>
-                                ${timeStr ? `<span class="text-slate-400">• ${timeStr}</span>` : ''}
-                            </div>
-                            ${r.context ? `<div class="text-slate-500">Kontext: <span class="font-medium text-slate-700">${r.context}</span></div>` : ''}
-                            ${r.details ? `<p class="text-slate-700 whitespace-pre-wrap bg-slate-50 p-2 rounded border border-slate-100">${r.details}</p>` : ''}
-                        </div>
-                        <div class="flex items-center gap-2 flex-shrink-0">
-                            ${r.targetUid && r.targetUid !== currentUser.uid ? `<button type="button" onclick="openRpToUser('${r.targetUid}', '${String(r.targetNick || 'Člen').replace(/'/g, "&#39;")}')" class="px-2.5 py-1 rounded bg-slovakia-blue text-white font-bold hover:bg-opacity-90">RP</button>` : ''}
-                            <button type="button" onclick="deleteReport('${r.id}')" class="px-2.5 py-1 rounded bg-red-600 text-white font-bold hover:bg-red-700">Zmazať</button>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function renderAdminPanel() {
-            renderAdminReports();
-            const totalEl = document.getElementById('adminTotalUsers');
-            const tbody = document.getElementById('adminUsersTableBody');
-            if (!totalEl || !tbody) return;
-            totalEl.innerText = usersDB.length;
-            tbody.innerHTML = usersDB.map(u => `
-                <tr class="border-b hover:bg-slate-50">
-                    <td class="p-3 font-bold text-slovakia-blue">${u.nick}</td>
-                    <td class="p-3">${getGenderBadge(u.gender, u.age) || '<span class="text-xs text-slate-400">—</span>'}</td>
-                    <td class="p-3 text-slate-500">${u.email}</td>
-                    <td class="p-3">${u.location}</td>
-                    <td class="p-3"><span class="px-2 py-0.5 rounded text-xs font-bold ${u.role === 'ADMIN' ? 'bg-red-100 text-slovakia-red' : 'bg-green-100 text-green-700'}">${u.role}</span></td>
-                    <td class="p-3 text-right">
-                        ${u.email !== ADMIN_EMAIL ? `<button onclick="deleteUser('${u.email}')" class="text-xs bg-red-600 text-white px-2.5 py-1 rounded font-bold hover:bg-opacity-90">Zmazať / Blokovať</button>` : '<span class="text-xs text-slate-400 font-bold">Hlavný Admin</span>'}
-                    </td>
-                </tr>
-            `).join('');
-        }
-
-        window.deleteUser = function(email) {
-            if (!currentUser || currentUser.email !== ADMIN_EMAIL) return;
-            alert("Používateľov z Auth zmažeš priamo vo Firebase Console.");
-        };
-
-        // ================= PROFIL A MODÁLY =================
-        let pendingProfilePhotoData = null;
-
-        function renderEditModalAvatar(photoData, nick) {
-            const wrap = document.getElementById('modalAvatarWrap');
-            const removeBtn = document.getElementById('removePhotoBtn');
-            if (!wrap) return;
-            if (photoData) {
-                wrap.innerHTML = `<img src="${photoData}" alt="${nick}" class="w-full h-full object-cover">`;
-                if (removeBtn) removeBtn.classList.remove('hidden');
-            } else {
-                wrap.innerHTML = `<span id="modalAvatar">${(nick || 'U').charAt(0).toUpperCase()}</span>`;
-                if (removeBtn) removeBtn.classList.add('hidden');
-            }
-        }
-
-        window.handleProfilePhotoSelect = function(e) {
-            const file = e.target.files && e.target.files[0];
-            if (!file) return;
-            if (!file.type.startsWith('image/')) {
-                alert("Vyber prosím obrázok (JPG, PNG, WebP).");
-                return;
-            }
-            const reader = new FileReader();
-            reader.onload = function(evt) {
-                const img = new Image();
-                img.onload = function() {
-                    const maxDim = 220;
-                    let w = img.width;
-                    let h = img.height;
-                    if (w > h) {
-                        if (w > maxDim) { h = Math.round(h * maxDim / w); w = maxDim; }
-                    } else {
-                        if (h > maxDim) { w = Math.round(w * maxDim / h); h = maxDim; }
-                    }
-                    const canvas = document.createElement('canvas');
-                    canvas.width = w;
-                    canvas.height = h;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, w, h);
-                    pendingProfilePhotoData = canvas.toDataURL('image/jpeg', 0.8);
-                    renderEditModalAvatar(pendingProfilePhotoData, document.getElementById('editNickInput').value || currentUser.nick);
-                };
-                img.src = evt.target.result;
-            };
-            reader.readAsDataURL(file);
-        };
-
-        window.removeProfilePhoto = function() {
-            pendingProfilePhotoData = "";
-            renderEditModalAvatar("", document.getElementById('editNickInput').value || currentUser.nick);
-        };
-
-        window.openProfileModal = function() {
-            if (!currentUser) return;
-            pendingProfilePhotoData = currentUser.photoData || "";
-            renderEditModalAvatar(pendingProfilePhotoData, currentUser.nick);
-            document.getElementById('modalEmail').innerText = currentUser.email;
-            document.getElementById('editNickInput').value = currentUser.nick || '';
-            document.getElementById('editGenderInput').value = (currentUser.gender === 'žena' || currentUser.gender === 'muž') ? currentUser.gender : 'muž';
-            document.getElementById('editAgeInput').value = currentUser.age || '';
-            document.getElementById('editLocInput').value = currentUser.location || 'Bratislavský';
-            document.getElementById('editStatusInput').value = currentUser.status || '';
-            document.getElementById('editBioInput').value = currentUser.bio || '';
-            document.getElementById('modalRole').innerText = currentUser.role;
-            document.getElementById('modalVerified').innerText = currentUser.verified ? "Overený" : "Admin účet";
-            renderBlockedUsersInModal();
-            document.getElementById('profileSaveAlert').classList.add('hidden');
-            document.getElementById('profileModal').classList.remove('hidden');
-        };
-
-        window.closeProfileModal = function() {
-            document.getElementById('profileModal').classList.add('hidden');
-        };
-
-        window.saveUserProfile = async function(e) {
-            e.preventDefault();
-            if (!currentUser) return;
-            const btn = document.getElementById('saveProfileBtn');
-            const newNick = document.getElementById('editNickInput').value.trim();
-            const newGender = document.getElementById('editGenderInput').value;
-            const newAge = document.getElementById('editAgeInput').value.trim();
-            const newLoc = document.getElementById('editLocInput').value;
-            const newStatus = document.getElementById('editStatusInput').value.trim();
-            const newBio = document.getElementById('editBioInput').value.trim();
-            const newPhoto = pendingProfilePhotoData !== null ? pendingProfilePhotoData : (currentUser.photoData || "");
-
-            if (!newNick) return;
-
-            btn.disabled = true;
-            btn.innerText = "Ukladám...";
-
-            try {
-                if (auth.currentUser && newNick !== currentUser.nick) {
-                    await updateProfile(auth.currentUser, { displayName: newNick });
-                }
-
-                currentUser.nick = newNick;
-                currentUser.gender = newGender;
-                currentUser.age = newAge;
-                currentUser.location = newLoc;
-                currentUser.status = newStatus;
-                currentUser.bio = newBio;
-                currentUser.photoData = newPhoto;
-
-                localStorage.setItem('tcka_loc_' + currentUser.uid, newLoc);
-                localStorage.setItem('tcka_gender_' + currentUser.uid, newGender);
-                localStorage.setItem('tcka_age_' + currentUser.uid, newAge);
-                localStorage.setItem('tcka_status_' + currentUser.uid, newStatus);
-                localStorage.setItem('tcka_bio_' + currentUser.uid, newBio);
-                try {
-                    if (newPhoto) {
-                        localStorage.setItem('tcka_photo_' + currentUser.uid, newPhoto);
-                    } else {
-                        localStorage.removeItem('tcka_photo_' + currentUser.uid);
-                    }
-                } catch (storageErr) {}
-
-                await setDoc(doc(db, "users", currentUser.uid), {
-                    uid: currentUser.uid,
-                    nick: newNick,
-                    gender: newGender,
-                    age: newAge,
-                    location: newLoc,
-                    status: newStatus,
-                    bio: newBio,
-                    photoData: newPhoto,
-                    lastActiveMs: Date.now(),
-                    lastActive: serverTimestamp()
-                }, { merge: true });
-
-                updateHeaderAvatarUI();
-                renderActiveUsers();
-                renderStretko();
-                renderChatMessages();
-
-                const alertEl = document.getElementById('profileSaveAlert');
-                alertEl.classList.remove('hidden');
-                setTimeout(() => {
-                    closeProfileModal();
-                }, 900);
-            } catch (err) {
-                console.error("Chyba pri ukladaní profilu:", err);
-                alert("Nepodarilo sa uložiť profil: " + err.message);
-            } finally {
-                btn.disabled = false;
-                btn.innerText = "Uložiť zmeny";
-            }
-        };
-
-        window.reactToMessageWithAutoReply = async function(msgId, targetUid, targetNick, msgSnippet) {
-            if (!currentUser || !targetUid || targetUid === currentUser.uid) return;
-            const shortSnippet = String(msgSnippet || '').trim().slice(0, 70);
-            const replyText = shortSnippet
-                ? `Reagujem na tvoju správu: "${shortSnippet}"`
-                : `Reagujem na tvoju správu v miestnosti ${currentRoom}.`;
-
-            if (msgId) {
-                const msgs = messagesDB[currentRoom] || [];
-                const msg = msgs.find(m => m.id === msgId);
-                if (msg) {
-                    const rx = { ...(msg.reactions || {}) };
-                    const currentList = Array.isArray(rx['↩️']) ? [...rx['↩️']] : [];
-                    if (!currentList.includes(currentUser.uid)) {
-                        currentList.push(currentUser.uid);
-                        rx['↩️'] = currentList;
-                        try {
-                            await updateDoc(doc(db, "rooms", currentRoom, "messages", msgId), {
-                                reactions: rx
-                            });
-                        } catch (err) {
-                            console.error("Chyba pri ukladaní reakcie:", err);
-                        }
-                    }
-                }
-            }
-
-            try {
-                const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                await addDoc(collection(db, "private_messages"), {
-                    fromUid: currentUser.uid,
-                    fromNick: currentUser.nick,
-                    toUid: targetUid,
-                    toNick: targetNick || 'Člen',
-                    participants: [currentUser.uid, targetUid],
-                    text: replyText,
-                    time: time,
-                    read: false,
-                    createdAtMs: Date.now(),
-                    timestamp: serverTimestamp()
-                });
-                activeRpPartnerUid = targetUid;
-                switchSection('messages');
-                renderRpConversation(targetUid);
-            } catch (err) {
-                console.error("Chyba pri automatickej reakcii cez RP:", err);
-                alert("Nepodarilo sa poslať automatickú reakciu.");
-            }
-        };
-
-        function getBlockedUserSet() {
-            if (!currentUser) return new Set();
-            try {
-                const raw = localStorage.getItem('tcka_blocked_' + currentUser.uid);
-                const arr = raw ? JSON.parse(raw) : [];
-                return new Set(Array.isArray(arr) ? arr : []);
-            } catch (e) {
-                return new Set();
-            }
-        }
-
-        function saveBlockedUserSet(setObj) {
-            if (!currentUser) return;
-            try {
-                localStorage.setItem('tcka_blocked_' + currentUser.uid, JSON.stringify([...setObj]));
-            } catch (e) {}
-        }
-
-        function renderBlockedUsersInModal() {
-            const box = document.getElementById('blockedUsersListModal');
-            if (!box || !currentUser) return;
-            const blocked = [...getBlockedUserSet()];
-            if (!blocked.length) {
-                box.innerHTML = `<div class="text-slate-400">Nikoho nemáš zablokovaného.</div>`;
-                return;
-            }
-            box.innerHTML = blocked.map(uid => {
-                const u = usersDB.find(item => item.uid === uid);
-                const label = u ? u.nick : uid.slice(0, 8);
-                const safeLabel = String(label).replace(/'/g, "&#39;");
-                return `<div class="flex items-center justify-between bg-white px-2.5 py-1.5 rounded border border-slate-200">
-                    <span class="font-semibold text-slate-700">${label}</span>
-                    <button type="button" onclick="toggleBlockUser('${uid}', '${safeLabel}', true)" class="text-slovakia-blue font-bold hover:underline">Odblokovať</button>
-                </div>`;
-            }).join('');
-        }
-
-        window.toggleBlockUser = function(targetUid, targetNick, refreshModalOnly = false) {
-            if (!currentUser || !targetUid || targetUid === currentUser.uid) return;
-            const targetUser = usersDB.find(item => item.uid === targetUid);
-            if ((targetUser && ((targetUser.email && targetUser.email.toLowerCase() === ADMIN_EMAIL) || targetUser.role === 'ADMIN'))) {
-                alert("Admina nie je možné zablokovať.");
-                return;
-            }
-            const setObj = getBlockedUserSet();
-            if (setObj.has(targetUid)) {
-                setObj.delete(targetUid);
-                if (!refreshModalOnly) alert(`Používateľ ${targetNick} bol odblokovaný.`);
-            } else {
-                setObj.add(targetUid);
-                if (activeRpPartnerUid === targetUid) {
-                    activeRpPartnerUid = null;
-                    const feedEl = document.getElementById('rpChatFeed');
-                    const formEl = document.getElementById('rpReplyForm');
-                    const titleEl = document.getElementById('rpActivePartnerNick');
-                    if (feedEl) feedEl.innerHTML = `<div class="text-center text-xs text-slate-400 py-12">Konverzácia s týmto používateľom je skrytá.</div>`;
-                    if (formEl) formEl.classList.add('hidden');
-                    if (titleEl) titleEl.innerText = 'Vyber konverzáciu vľavo';
-                }
-                if (!refreshModalOnly) alert(`Používateľ ${targetNick} bol zablokovaný — jeho RP správy sa ti nebudú zobrazovať.`);
-            }
-            saveBlockedUserSet(setObj);
-            renderRpThreads();
-            renderBlockedUsersInModal();
-            if (!refreshModalOnly) closePublicProfileModal();
-        };
-
-        window.openPublicProfile = function(uid) {
-            const u = usersDB.find(item => item.uid === uid);
-            if (!u) return;
-            if (currentUser && u.uid === currentUser.uid) {
-                openProfileModal();
-                return;
-            }
-            const avatarWrap = document.getElementById('pubAvatarWrap');
-            const avatarBg = u.gender === 'žena' ? 'bg-pink-600' : 'bg-slovakia-blue';
-            avatarWrap.className = `w-24 h-24 ${avatarBg} text-white rounded-full flex items-center justify-center text-3xl font-black mx-auto mb-3 overflow-hidden border-4 border-slate-100 shadow-md`;
-            if (u.photoData) {
-                avatarWrap.innerHTML = `<img src="${u.photoData}" alt="${u.nick}" class="w-full h-full object-cover">`;
-            } else {
-                avatarWrap.innerText = (u.nick || 'U').charAt(0).toUpperCase();
-            }
-
-            document.getElementById('pubNick').innerText = u.nick;
-            document.getElementById('pubBadges').innerHTML = `
-                ${getGenderBadge(u.gender, u.age)}
-                ${u.role === 'ADMIN' ? '<span class="bg-red-600 text-white text-[10px] px-1.5 py-0.5 rounded font-bold">ADMIN</span>' : ''}
-            `;
-
-            const statusEl = document.getElementById('pubStatus');
-            if (u.status) {
-                statusEl.innerText = `"${u.status}"`;
-                statusEl.classList.remove('hidden');
-            } else {
-                statusEl.classList.add('hidden');
-            }
-
-            document.getElementById('pubLoc').innerText = u.location || 'Neuvedená';
-            document.getElementById('pubRoom').innerText = u.currentRoom || 'Hlavná sála';
-
-            const bioWrap = document.getElementById('pubBioWrap');
-            const bioEl = document.getElementById('pubBio');
-            if (u.bio) {
-                bioEl.innerText = u.bio;
-                bioWrap.classList.remove('hidden');
-            } else {
-                bioWrap.classList.add('hidden');
-            }
-
-            const safePubNick = String(u.nick || 'Člen').replace(/'/g, "&#39;");
-            const isTargetAdmin = (u.email && u.email.toLowerCase() === ADMIN_EMAIL) || u.role === 'ADMIN';
-            const isBlocked = !isTargetAdmin && getBlockedUserSet().has(u.uid);
-            const blockBtnHtml = isTargetAdmin
-                ? `<div class="w-full border border-amber-200 bg-amber-50 text-amber-800 py-2 px-3 rounded-lg text-[11px] font-bold text-center"><i class="fa-solid fa-shield-halved mr-1.5"></i>Admina nie je možné zablokovať</div>`
-                : `<button type="button" onclick="toggleBlockUser('${u.uid}', '${safePubNick}')" class="w-full border ${isBlocked ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100'} py-2 rounded-lg text-xs font-bold transition">
-                        <i class="fa-solid ${isBlocked ? 'fa-user-check' : 'fa-ban'} mr-1.5"></i>${isBlocked ? 'Odblokovať člena' : 'Zablokovať člena (skryť RP)'}
-                    </button>`;
-            document.getElementById('pubActionArea').innerHTML = `
-                <div class="space-y-2">
-                    <button onclick="closePublicProfileModal(); openRpToUser('${u.uid}', '${safePubNick}')" class="w-full bg-slovakia-blue text-white py-2.5 rounded-lg text-sm font-bold hover:bg-opacity-90 transition shadow">
-                        <i class="fa-solid fa-paper-plane mr-2"></i>Poslať súkromnú správu (RP)
-                    </button>
-                    ${blockBtnHtml}
-                    <button type="button" onclick="closePublicProfileModal(); openReportModal('${u.uid}', '${safePubNick}', 'Profil používateľa')" class="w-full border border-red-200 bg-red-50 text-slovakia-red py-2 rounded-lg text-xs font-bold hover:bg-red-100 transition">
-                        <i class="fa-regular fa-flag mr-1.5"></i>Nahlásiť nevhodné chovanie
-                    </button>
-                </div>
-            `;
-            document.getElementById('publicProfileModal').classList.remove('hidden');
-        };
-
-        window.closePublicProfileModal = function() {
-            document.getElementById('publicProfileModal').classList.add('hidden');
-        };
-
-        window.openReportModal = function(targetUid, targetNick, contextText = '') {
-            if (!currentUser) return;
-            if (targetUid === currentUser.uid) return;
-            document.getElementById('reportTargetUid').value = targetUid || '';
-            document.getElementById('reportTargetNick').value = targetNick || 'Člen';
-            document.getElementById('reportContextText').value = contextText || '';
-            document.getElementById('reportTargetDisplay').innerText = `${targetNick || 'Člen'}${contextText ? ` (${contextText})` : ''}`;
-            document.getElementById('reportReasonSelect').selectedIndex = 0;
-            document.getElementById('reportDetailsInput').value = '';
-            document.getElementById('reportModal').classList.remove('hidden');
-        };
-
-        window.closeReportModal = function() {
-            document.getElementById('reportModal').classList.add('hidden');
-        };
-
-        window.submitReportModal = async function(e) {
-            e.preventDefault();
-            if (!currentUser) return;
-            const targetUid = document.getElementById('reportTargetUid').value;
-            const targetNick = document.getElementById('reportTargetNick').value;
-            const contextText = document.getElementById('reportContextText').value;
-            const reason = document.getElementById('reportReasonSelect').value;
-            const details = document.getElementById('reportDetailsInput').value.trim();
-            const btn = document.getElementById('reportSubmitBtn');
-
-            btn.disabled = true;
-            btn.innerText = "Odosielam...";
-            try {
-                await addDoc(collection(db, "reports"), {
-                    reporterUid: currentUser.uid,
-                    reporterNick: currentUser.nick,
-                    targetUid: targetUid,
-                    targetNick: targetNick,
-                    context: contextText,
-                    reason: reason,
-                    details: details,
-                    createdAtMs: Date.now(),
-                    timestamp: serverTimestamp()
-                });
-                closeReportModal();
-                alert("Hlásenie bolo odoslané správcovi. Ďakujeme.");
-            } catch (err) {
-                console.error("Chyba pri odosielaní hlásenia:", err);
-                alert("Nepodarilo sa odoslať hlásenie.");
-            } finally {
-                btn.disabled = false;
-                btn.innerText = "Odoslať hlásenie";
-            }
-        };
-
-        window.closeAllMobileDrawers = function() {
-            const backdrop = document.getElementById('mobileDrawerBackdrop');
-            const roomsD = document.getElementById('mobileRoomsDrawer');
-            const usersD = document.getElementById('mobileUsersDrawer');
-            const navD = document.getElementById('mobileNavDrawer');
-            if (backdrop) backdrop.classList.add('hidden');
-            if (roomsD) { roomsD.classList.add('hidden'); roomsD.classList.remove('flex'); }
-            if (usersD) { usersD.classList.add('hidden'); usersD.classList.remove('flex'); }
-            if (navD) { navD.classList.add('hidden'); navD.classList.remove('flex'); }
-        };
-
-        window.toggleMobileDrawer = function(which) {
-            const backdrop = document.getElementById('mobileDrawerBackdrop');
-            const roomsD = document.getElementById('mobileRoomsDrawer');
-            const usersD = document.getElementById('mobileUsersDrawer');
-            const navD = document.getElementById('mobileNavDrawer');
-
-            const isAlreadyOpen =
-                (which === 'rooms' && roomsD && !roomsD.classList.contains('hidden')) ||
-                (which === 'users' && usersD && !usersD.classList.contains('hidden')) ||
-                (which === 'nav' && navD && !navD.classList.contains('hidden'));
-
-            closeAllMobileDrawers();
-            if (isAlreadyOpen) return;
-
-            if (backdrop) backdrop.classList.remove('hidden');
-            if (which === 'rooms' && roomsD) {
-                roomsD.classList.remove('hidden');
-                roomsD.classList.add('flex');
-            } else if (which === 'users' && usersD) {
-                usersD.classList.remove('hidden');
-                usersD.classList.add('flex');
-            } else if (which === 'nav' && navD) {
-                if (currentUser && currentUser.email === ADMIN_EMAIL) {
-                    const mAdmin = document.getElementById('mobileNavAdminBtn');
-                    if (mAdmin) mAdmin.classList.remove('hidden');
-                }
-                navD.classList.remove('hidden');
-                navD.classList.add('flex');
-            }
-        };
-
-        window.mobileNavSelect = function(sec) {
-            closeAllMobileDrawers();
-            switchSection(sec);
-        };
-    </script>
+          `
+        )
+        .join("");
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    currentUserSelectEl.addEventListener("change", (e) => {
+      currentUserId = e.target.value;
+      renderMessages();
+      showToast(`Prepnuté na: ${getCurrentUser().name}`);
+    });
+
+    chatFormEl.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const text = messageInputEl.value.trim();
+      if (!text) return;
+
+      messages.push({
+        id: "m" + (messages.length + 1),
+        authorId: currentUserId,
+        text,
+        time: new Date().toLocaleTimeString("sk-SK", { hour: "2-digit", minute: "2-digit" }),
+        reactions: {}
+      });
+
+      messageInputEl.value = "";
+      renderMessages();
+      messagesListEl.scrollTop = messagesListEl.scrollHeight;
+    });
+
+    messagesListEl.addEventListener("click", (e) => {
+      const reactBtn = e.target.closest("[data-react-msg]");
+      if (reactBtn) {
+        toggleReaction(reactBtn.dataset.reactMsg, reactBtn.dataset.reactEmoji);
+        return;
+      }
+
+      const reportBtn = e.target.closest("[data-report-target]");
+      if (reportBtn) {
+        const targetUser = getUserById(reportBtn.dataset.reportTarget);
+        openReportModal(targetUser, reportBtn.dataset.reportMsg);
+      }
+    });
+
+    cancelReportBtn.addEventListener("click", closeReportModal);
+    confirmReportBtn.addEventListener("click", submitReport);
+    reportModalEl.addEventListener("click", (e) => {
+      if (e.target === reportModalEl) closeReportModal();
+    });
+
+    renderUsersSelect();
+    renderMessages();
+    renderReports();
+  </script>
 </body>
 </html>
