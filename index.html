@@ -1378,6 +1378,7 @@
                 const userObj = usersDB.find(u => (m.uid && u.uid === m.uid) || u.nick === m.nick);
                 const photo = (userObj && userObj.photoData) || m.photoData || '';
                 const targetUid = (userObj && userObj.uid) || m.uid || '';
+                const isMsgAdmin = m.role === 'ADMIN' || isAdminUserObj(userObj, targetUid, m.nick);
                 const avatarBg = m.gender === 'žena' ? 'bg-pink-600' : 'bg-slovakia-blue';
                 const nickColor = m.gender === 'žena' ? 'text-pink-700' : 'text-slovakia-blue';
                 const avatarHtml = photo
@@ -1385,6 +1386,21 @@
                     : `${(m.nick || 'A').charAt(0).toUpperCase()}`;
                 const clickAttr = targetUid ? `onclick="openPublicProfile('${targetUid}')"` : '';
                 const cursorClass = targetUid ? 'cursor-pointer hover:underline' : '';
+                const showReportFlag = !isMsgAdmin && canReportTarget(targetUid, m.nick);
+                const safeNickEsc = String(m.nick || 'Člen').replace(/'/g, "&#39;");
+                const safeTextEsc = String(m.text || '').replace(/'/g, "&#39;");
+
+                const rx = m.reactions || {};
+                const rxItems = Object.entries(rx).filter(([_, uids]) => Array.isArray(uids) && uids.length > 0);
+                const badges = rxItems.map(([em, uids]) => {
+                    const active = currentUser && uids.includes(currentUser.uid);
+                    return `<button type="button" onclick="reactInRoom('${m.id}', '${em}')" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border transition ${active ? 'bg-blue-100 border-slovakia-blue text-slovakia-blue font-bold' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'}"><span>${em}</span><span>${uids.length}</span></button>`;
+                }).join('');
+                const hasThumb = Boolean(currentUser && Array.isArray(rx['👍']) && rx['👍'].includes(currentUser.uid));
+                const reactBtn = (currentUser && m.id)
+                    ? `<button type="button" onclick="reactInRoom('${m.id}', '👍')" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs border ${hasThumb ? 'bg-blue-100 border-slovakia-blue text-slovakia-blue font-bold' : 'border-slate-300 bg-white text-slate-700 hover:bg-blue-50 hover:border-slovakia-blue hover:text-slovakia-blue'} font-semibold transition"><span>👍</span><span>Reagovať</span></button>`
+                    : '';
+
                 return `
                 <div class="flex items-start space-x-3">
                     <div ${clickAttr} class="w-9 h-9 rounded-full ${avatarBg} text-white flex items-center justify-center font-bold text-xs flex-shrink-0 overflow-hidden shadow-sm ${targetUid ? 'cursor-pointer' : ''}">${avatarHtml}</div>
@@ -1392,26 +1408,12 @@
                         <div class="flex items-center flex-wrap gap-1.5">
                             <span ${clickAttr} class="font-bold text-sm ${nickColor} ${cursorClass}">${m.nick}</span>
                             ${getGenderBadge(m.gender, m.age)}
-                            ${m.role === 'ADMIN' ? '<span class="bg-red-600 text-white text-[10px] px-1.5 py-0.2 rounded font-bold">ADMIN</span>' : ''}
+                            ${isMsgAdmin ? '<span class="bg-red-600 text-white text-[10px] px-1.5 py-0.2 rounded font-bold">ADMIN</span>' : ''}
                             <span class="text-xs text-slate-400">${m.time || ''}</span>
-                            ${currentUser && targetUid && targetUid !== currentUser.uid ? `<button type="button" onclick="openReportModal('${targetUid}', '${String(m.nick || 'Člen').replace(/'/g, "&#39;")}', '${String(m.text || '').replace(/'/g, "&#39;")}')" title="Nahlásiť správu" class="text-slate-300 hover:text-slovakia-red text-xs ml-auto transition"><i class="fa-regular fa-flag"></i></button>` : ''}
+                            ${showReportFlag ? `<button type="button" onclick="openReportModal('${targetUid}', '${safeNickEsc}', '${safeTextEsc}')" title="Nahlásiť správu" class="text-slate-300 hover:text-slovakia-red text-xs ml-auto transition"><i class="fa-regular fa-flag"></i></button>` : ''}
                         </div>
                         <p class="text-sm text-slate-700 mt-0.5 break-words">${m.text}</p>
-                        ${m.id ? (() => {
-                            const rx = m.reactions || {};
-                            const rxItems = Object.entries(rx).filter(([_, uids]) => Array.isArray(uids) && uids.length > 0);
-                            const badges = rxItems.map(([em, uids]) => {
-                                const active = currentUser && uids.includes(currentUser.uid);
-                                return `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border ${active ? 'bg-blue-100 border-slovakia-blue text-slovakia-blue font-bold' : 'bg-slate-50 border-slate-200 text-slate-600'}"><span>${em}</span><span>${uids.length}</span></span>`;
-                            }).join('');
-                            const canReply = currentUser && targetUid && targetUid !== currentUser.uid;
-                            const safeNickAttr = String(m.nick || 'Člen').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
-                            const safeSnippetAttr = String(m.text || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
-                            const reactBtn = canReply
-                                ? `<button type="button" onclick="reactToMessageWithAutoReply('${m.id}', '${targetUid}', '${safeNickAttr}', '${safeSnippetAttr}')" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs border border-slate-300 bg-white text-slate-700 hover:bg-blue-50 hover:border-slovakia-blue hover:text-slovakia-blue font-semibold transition"><i class="fa-solid fa-reply text-[10px]"></i><span>Reagovať</span></button>`
-                                : '';
-                            return (badges || reactBtn) ? `<div class="flex flex-wrap items-center gap-1.5 mt-1.5">${badges}${reactBtn}</div>` : '';
-                        })() : ''}
+                        ${(badges || reactBtn) ? `<div class="flex flex-wrap items-center gap-1.5 mt-1.5">${badges}${reactBtn}</div>` : ''}
                     </div>
                 </div>
             `}).join('');
@@ -2105,7 +2107,7 @@
             const safeDesc = String(p.desc || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
             const safeAuthor = String(p.author || 'Člen').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
             const safeType = String(p.type || 'spolujazda').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-            const reportBtn = currentUser && resolvedAuthorUid && resolvedAuthorUid !== currentUser.uid
+            const reportBtn = canReportTarget(resolvedAuthorUid, p.author)
                 ? `<button type="button" onclick="openReportModal('${resolvedAuthorUid}', '${safeAuthor}', '${safeType}: ${safeTitle}')" title="Nahlásiť príspevok" class="text-slate-300 hover:text-slovakia-red text-xs ml-1.5 transition"><i class="fa-regular fa-flag"></i></button>`
                 : '';
             const rpAction = currentUser && resolvedAuthorUid && resolvedAuthorUid !== currentUser.uid
@@ -2600,53 +2602,62 @@
             }
         };
 
-        window.reactToMessageWithAutoReply = async function(msgId, targetUid, targetNick, msgSnippet) {
-            if (!currentUser || !targetUid || targetUid === currentUser.uid) return;
-            const shortSnippet = String(msgSnippet || '').trim().slice(0, 70);
-            const replyText = shortSnippet
-                ? `Reagujem na tvoju správu: "${shortSnippet}"`
-                : `Reagujem na tvoju správu v miestnosti ${currentRoom}.`;
-
-            if (msgId) {
-                const msgs = messagesDB[currentRoom] || [];
-                const msg = msgs.find(m => m.id === msgId);
-                if (msg) {
-                    const rx = { ...(msg.reactions || {}) };
-                    const currentList = Array.isArray(rx['↩️']) ? [...rx['↩️']] : [];
-                    if (!currentList.includes(currentUser.uid)) {
-                        currentList.push(currentUser.uid);
-                        rx['↩️'] = currentList;
-                        try {
-                            await updateDoc(doc(db, "rooms", currentRoom, "messages", msgId), {
-                                reactions: rx
-                            });
-                        } catch (err) {
-                            console.error("Chyba pri ukladaní reakcie:", err);
-                        }
-                    }
+        function isAdminUserObj(userObj, fallbackUid = '', fallbackNick = '') {
+            if (userObj) {
+                if (userObj.email && String(userObj.email).toLowerCase() === ADMIN_EMAIL) return true;
+                if (String(userObj.role || '').toUpperCase() === 'ADMIN') return true;
+            }
+            if (fallbackUid) {
+                const byUid = usersDB.find(u => u.uid === fallbackUid);
+                if (byUid && ((byUid.email && String(byUid.email).toLowerCase() === ADMIN_EMAIL) || String(byUid.role || '').toUpperCase() === 'ADMIN')) {
+                    return true;
                 }
             }
+            if (fallbackNick) {
+                const byNick = usersDB.find(u => u.nick === fallbackNick);
+                if (byNick && ((byNick.email && String(byNick.email).toLowerCase() === ADMIN_EMAIL) || String(byNick.role || '').toUpperCase() === 'ADMIN')) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function canReportTarget(targetUid, targetNick = '') {
+            if (!currentUser || !targetUid || targetUid === currentUser.uid) return false;
+            if (isAdminUserObj(null, targetUid, targetNick)) return false;
+            return true;
+        }
+
+        window.reactInRoom = async function(msgId, emoji = '👍') {
+            if (!currentUser || !msgId) return;
+            const msgs = messagesDB[currentRoom] || [];
+            const msg = msgs.find(m => m.id === msgId);
+            if (!msg) return;
+
+            const rx = { ...(msg.reactions || {}) };
+            const currentList = Array.isArray(rx[emoji]) ? [...rx[emoji]] : [];
+            const idx = currentList.indexOf(currentUser.uid);
+            if (idx === -1) {
+                currentList.push(currentUser.uid);
+            } else {
+                currentList.splice(idx, 1);
+            }
+            if (currentList.length > 0) {
+                rx[emoji] = currentList;
+            } else {
+                delete rx[emoji];
+            }
+
+            msg.reactions = rx;
+            renderChatMessages();
 
             try {
-                const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                await addDoc(collection(db, "private_messages"), {
-                    fromUid: currentUser.uid,
-                    fromNick: currentUser.nick,
-                    toUid: targetUid,
-                    toNick: targetNick || 'Člen',
-                    participants: [currentUser.uid, targetUid],
-                    text: replyText,
-                    time: time,
-                    read: false,
-                    createdAtMs: Date.now(),
-                    timestamp: serverTimestamp()
+                await updateDoc(doc(db, "rooms", currentRoom, "messages", msgId), {
+                    reactions: rx
                 });
-                activeRpPartnerUid = targetUid;
-                switchSection('messages');
-                renderRpConversation(targetUid);
             } catch (err) {
-                console.error("Chyba pri automatickej reakcii cez RP:", err);
-                alert("Nepodarilo sa poslať automatickú reakciu.");
+                console.error("Chyba pri ukladaní reakcie v miestnosti:", err);
+                alert("Nepodarilo sa uložiť reakciu v miestnosti.");
             }
         };
 
@@ -2760,12 +2771,17 @@
             }
 
             const safePubNick = String(u.nick || 'Člen').replace(/'/g, "&#39;");
-            const isTargetAdmin = (u.email && u.email.toLowerCase() === ADMIN_EMAIL) || u.role === 'ADMIN';
+            const isTargetAdmin = isAdminUserObj(u, u.uid, u.nick);
             const isBlocked = !isTargetAdmin && getBlockedUserSet().has(u.uid);
             const blockBtnHtml = isTargetAdmin
                 ? `<div class="w-full border border-amber-200 bg-amber-50 text-amber-800 py-2 px-3 rounded-lg text-[11px] font-bold text-center"><i class="fa-solid fa-shield-halved mr-1.5"></i>Admina nie je možné zablokovať</div>`
                 : `<button type="button" onclick="toggleBlockUser('${u.uid}', '${safePubNick}')" class="w-full border ${isBlocked ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100'} py-2 rounded-lg text-xs font-bold transition">
                         <i class="fa-solid ${isBlocked ? 'fa-user-check' : 'fa-ban'} mr-1.5"></i>${isBlocked ? 'Odblokovať člena' : 'Zablokovať člena (skryť RP)'}
+                    </button>`;
+            const reportBtnHtml = isTargetAdmin
+                ? `<div class="w-full border border-amber-200 bg-amber-50 text-amber-800 py-2 px-3 rounded-lg text-[11px] font-bold text-center"><i class="fa-solid fa-flag mr-1.5"></i>Nevhodné chovanie admina sa nedá nahlásiť</div>`
+                : `<button type="button" onclick="closePublicProfileModal(); openReportModal('${u.uid}', '${safePubNick}', 'Profil používateľa')" class="w-full border border-red-200 bg-red-50 text-slovakia-red py-2 rounded-lg text-xs font-bold hover:bg-red-100 transition">
+                        <i class="fa-regular fa-flag mr-1.5"></i>Nahlásiť nevhodné chovanie
                     </button>`;
             document.getElementById('pubActionArea').innerHTML = `
                 <div class="space-y-2">
@@ -2773,9 +2789,7 @@
                         <i class="fa-solid fa-paper-plane mr-2"></i>Poslať súkromnú správu (RP)
                     </button>
                     ${blockBtnHtml}
-                    <button type="button" onclick="closePublicProfileModal(); openReportModal('${u.uid}', '${safePubNick}', 'Profil používateľa')" class="w-full border border-red-200 bg-red-50 text-slovakia-red py-2 rounded-lg text-xs font-bold hover:bg-red-100 transition">
-                        <i class="fa-regular fa-flag mr-1.5"></i>Nahlásiť nevhodné chovanie
-                    </button>
+                    ${reportBtnHtml}
                 </div>
             `;
             document.getElementById('publicProfileModal').classList.remove('hidden');
@@ -2787,7 +2801,10 @@
 
         window.openReportModal = function(targetUid, targetNick, contextText = '') {
             if (!currentUser) return;
-            if (targetUid === currentUser.uid) return;
+            if (!canReportTarget(targetUid, targetNick)) {
+                alert("Nevhodné chovanie admina sa nedá nahlásiť.");
+                return;
+            }
             document.getElementById('reportTargetUid').value = targetUid || '';
             document.getElementById('reportTargetNick').value = targetNick || 'Člen';
             document.getElementById('reportContextText').value = contextText || '';
@@ -2806,6 +2823,11 @@
             if (!currentUser) return;
             const targetUid = document.getElementById('reportTargetUid').value;
             const targetNick = document.getElementById('reportTargetNick').value;
+            if (!canReportTarget(targetUid, targetNick)) {
+                alert("Nevhodné chovanie admina sa nedá nahlásiť.");
+                closeReportModal();
+                return;
+            }
             const contextText = document.getElementById('reportContextText').value;
             const reason = document.getElementById('reportReasonSelect').value;
             const details = document.getElementById('reportDetailsInput').value.trim();
