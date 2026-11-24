@@ -1399,14 +1399,18 @@
                         <p class="text-sm text-slate-700 mt-0.5 break-words">${m.text}</p>
                         ${m.id ? (() => {
                             const rx = m.reactions || {};
-                            const emojis = ['👍', '❤️', '😂'];
-                            const btns = emojis.map(em => {
-                                const uids = Array.isArray(rx[em]) ? rx[em] : [];
-                                const cnt = uids.length;
+                            const rxItems = Object.entries(rx).filter(([_, uids]) => Array.isArray(uids) && uids.length > 0);
+                            const badges = rxItems.map(([em, uids]) => {
                                 const active = currentUser && uids.includes(currentUser.uid);
-                                return `<button type="button" onclick="toggleMessageReaction('${m.id}', '${em}')" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border transition ${active ? 'bg-blue-100 border-slovakia-blue text-slovakia-blue font-bold' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'}"><span>${em}</span>${cnt > 0 ? `<span>${cnt}</span>` : ''}</button>`;
+                                return `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border ${active ? 'bg-blue-100 border-slovakia-blue text-slovakia-blue font-bold' : 'bg-slate-50 border-slate-200 text-slate-600'}"><span>${em}</span><span>${uids.length}</span></span>`;
                             }).join('');
-                            return `<div class="flex items-center gap-1.5 mt-1.5">${btns}</div>`;
+                            const canReply = currentUser && targetUid && targetUid !== currentUser.uid;
+                            const safeNickAttr = String(m.nick || 'Člen').replace(/\/g, '\\').replace(/'/g, "\'").replace(/"/g, '&quot;');
+                            const safeSnippetAttr = String(m.text || '').replace(/\/g, '\\').replace(/'/g, "\'").replace(/"/g, '&quot;');
+                            const reactBtn = canReply
+                                ? `<button type="button" onclick="reactToMessageWithAutoReply('${m.id}', '${targetUid}', '${safeNickAttr}', '${safeSnippetAttr}')" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs border border-slate-300 bg-white text-slate-700 hover:bg-blue-50 hover:border-slovakia-blue hover:text-slovakia-blue font-semibold transition"><i class="fa-solid fa-reply text-[10px]"></i><span>Reagovať</span></button>`
+                                : '';
+                            return (badges || reactBtn) ? `<div class="flex flex-wrap items-center gap-1.5 mt-1.5">${badges}${reactBtn}</div>` : '';
                         })() : ''}
                     </div>
                 </div>
@@ -2596,26 +2600,53 @@
             }
         };
 
-        window.toggleMessageReaction = async function(msgId, emoji) {
-            if (!currentUser || !msgId) return;
-            const msgs = messagesDB[currentRoom] || [];
-            const msg = msgs.find(m => m.id === msgId);
-            if (!msg) return;
-            const rx = { ...(msg.reactions || {}) };
-            const currentList = Array.isArray(rx[emoji]) ? [...rx[emoji]] : [];
-            const idx = currentList.indexOf(currentUser.uid);
-            if (idx >= 0) {
-                currentList.splice(idx, 1);
-            } else {
-                currentList.push(currentUser.uid);
+        window.reactToMessageWithAutoReply = async function(msgId, targetUid, targetNick, msgSnippet) {
+            if (!currentUser || !targetUid || targetUid === currentUser.uid) return;
+            const shortSnippet = String(msgSnippet || '').trim().slice(0, 70);
+            const replyText = shortSnippet
+                ? `Reagujem na tvoju správu: "${shortSnippet}"`
+                : `Reagujem na tvoju správu v miestnosti ${currentRoom}.`;
+
+            if (msgId) {
+                const msgs = messagesDB[currentRoom] || [];
+                const msg = msgs.find(m => m.id === msgId);
+                if (msg) {
+                    const rx = { ...(msg.reactions || {}) };
+                    const currentList = Array.isArray(rx['↩️']) ? [...rx['↩️']] : [];
+                    if (!currentList.includes(currentUser.uid)) {
+                        currentList.push(currentUser.uid);
+                        rx['↩️'] = currentList;
+                        try {
+                            await updateDoc(doc(db, "rooms", currentRoom, "messages", msgId), {
+                                reactions: rx
+                            });
+                        } catch (err) {
+                            console.error("Chyba pri ukladaní reakcie:", err);
+                        }
+                    }
+                }
             }
-            rx[emoji] = currentList;
+
             try {
-                await updateDoc(doc(db, "rooms", currentRoom, "messages", msgId), {
-                    reactions: rx
+                const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                await addDoc(collection(db, "private_messages"), {
+                    fromUid: currentUser.uid,
+                    fromNick: currentUser.nick,
+                    toUid: targetUid,
+                    toNick: targetNick || 'Člen',
+                    participants: [currentUser.uid, targetUid],
+                    text: replyText,
+                    time: time,
+                    read: false,
+                    createdAtMs: Date.now(),
+                    timestamp: serverTimestamp()
                 });
+                activeRpPartnerUid = targetUid;
+                switchSection('messages');
+                renderRpConversation(targetUid);
             } catch (err) {
-                console.error("Chyba pri ukladaní reakcie:", err);
+                console.error("Chyba pri automatickej reakcii cez RP:", err);
+                alert("Nepodarilo sa poslať automatickú reakciu.");
             }
         };
 
@@ -2658,6 +2689,11 @@
 
         window.toggleBlockUser = function(targetUid, targetNick, refreshModalOnly = false) {
             if (!currentUser || !targetUid || targetUid === currentUser.uid) return;
+            const targetUser = usersDB.find(item => item.uid === targetUid);
+            if ((targetUser && ((targetUser.email && targetUser.email.toLowerCase() === ADMIN_EMAIL) || targetUser.role === 'ADMIN'))) {
+                alert("Admina nie je možné zablokovať.");
+                return;
+            }
             const setObj = getBlockedUserSet();
             if (setObj.has(targetUid)) {
                 setObj.delete(targetUid);
@@ -2724,15 +2760,19 @@
             }
 
             const safePubNick = String(u.nick || 'Člen').replace(/'/g, "&#39;");
-            const isBlocked = getBlockedUserSet().has(u.uid);
+            const isTargetAdmin = (u.email && u.email.toLowerCase() === ADMIN_EMAIL) || u.role === 'ADMIN';
+            const isBlocked = !isTargetAdmin && getBlockedUserSet().has(u.uid);
+            const blockBtnHtml = isTargetAdmin
+                ? `<div class="w-full border border-amber-200 bg-amber-50 text-amber-800 py-2 px-3 rounded-lg text-[11px] font-bold text-center"><i class="fa-solid fa-shield-halved mr-1.5"></i>Admina nie je možné zablokovať</div>`
+                : `<button type="button" onclick="toggleBlockUser('${u.uid}', '${safePubNick}')" class="w-full border ${isBlocked ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100'} py-2 rounded-lg text-xs font-bold transition">
+                        <i class="fa-solid ${isBlocked ? 'fa-user-check' : 'fa-ban'} mr-1.5"></i>${isBlocked ? 'Odblokovať člena' : 'Zablokovať člena (skryť RP)'}
+                    </button>`;
             document.getElementById('pubActionArea').innerHTML = `
                 <div class="space-y-2">
                     <button onclick="closePublicProfileModal(); openRpToUser('${u.uid}', '${safePubNick}')" class="w-full bg-slovakia-blue text-white py-2.5 rounded-lg text-sm font-bold hover:bg-opacity-90 transition shadow">
                         <i class="fa-solid fa-paper-plane mr-2"></i>Poslať súkromnú správu (RP)
                     </button>
-                    <button type="button" onclick="toggleBlockUser('${u.uid}', '${safePubNick}')" class="w-full border ${isBlocked ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100'} py-2 rounded-lg text-xs font-bold transition">
-                        <i class="fa-solid ${isBlocked ? 'fa-user-check' : 'fa-ban'} mr-1.5"></i>${isBlocked ? 'Odblokovať člena' : 'Zablokovať člena (skryť RP)'}
-                    </button>
+                    ${blockBtnHtml}
                     <button type="button" onclick="closePublicProfileModal(); openReportModal('${u.uid}', '${safePubNick}', 'Profil používateľa')" class="w-full border border-red-200 bg-red-50 text-slovakia-red py-2 rounded-lg text-xs font-bold hover:bg-red-100 transition">
                         <i class="fa-regular fa-flag mr-1.5"></i>Nahlásiť nevhodné chovanie
                     </button>
