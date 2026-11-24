@@ -1396,8 +1396,9 @@
                     const active = currentUser && uids.includes(currentUser.uid);
                     return `<button type="button" onclick="reactInRoom('${m.id}', '${em}')" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border transition ${active ? 'bg-blue-100 border-slovakia-blue text-slovakia-blue font-bold' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'}"><span>${em}</span><span>${uids.length}</span></button>`;
                 }).join('');
+                const isOwnMsg = Boolean(currentUser && ((m.uid && m.uid === currentUser.uid) || (!m.uid && m.nick === currentUser.nick)));
                 const hasThumb = Boolean(currentUser && Array.isArray(rx['👍']) && rx['👍'].includes(currentUser.uid));
-                const reactBtn = (currentUser && m.id)
+                const reactBtn = (!isOwnMsg && currentUser && m.id)
                     ? `<button type="button" onclick="reactInRoom('${m.id}', '👍', '${safeNickEsc}')" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs border ${hasThumb ? 'bg-blue-100 border-slovakia-blue text-slovakia-blue font-bold' : 'border-slate-300 bg-white text-slate-700 hover:bg-blue-50 hover:border-slovakia-blue hover:text-slovakia-blue'} font-semibold transition"><span>👍</span><span>Reagovať</span></button>`
                     : '';
 
@@ -2633,6 +2634,7 @@
             const msgs = messagesDB[currentRoom] || [];
             const msg = msgs.find(m => m.id === msgId);
             if (!msg) return;
+            if ((msg.uid && msg.uid === currentUser.uid) || (!msg.uid && msg.nick === currentUser.nick)) return;
 
             const rx = { ...(msg.reactions || {}) };
             const currentList = Array.isArray(rx[emoji]) ? [...rx[emoji]] : [];
