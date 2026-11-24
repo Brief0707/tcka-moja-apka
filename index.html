@@ -1405,8 +1405,8 @@
                                 return `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border ${active ? 'bg-blue-100 border-slovakia-blue text-slovakia-blue font-bold' : 'bg-slate-50 border-slate-200 text-slate-600'}"><span>${em}</span><span>${uids.length}</span></span>`;
                             }).join('');
                             const canReply = currentUser && targetUid && targetUid !== currentUser.uid;
-                            const safeNickAttr = String(m.nick || 'Člen').replace(/\/g, '\\').replace(/'/g, "\'").replace(/"/g, '&quot;');
-                            const safeSnippetAttr = String(m.text || '').replace(/\/g, '\\').replace(/'/g, "\'").replace(/"/g, '&quot;');
+                            const safeNickAttr = String(m.nick || 'Člen').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                            const safeSnippetAttr = String(m.text || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
                             const reactBtn = canReply
                                 ? `<button type="button" onclick="reactToMessageWithAutoReply('${m.id}', '${targetUid}', '${safeNickAttr}', '${safeSnippetAttr}')" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs border border-slate-300 bg-white text-slate-700 hover:bg-blue-50 hover:border-slovakia-blue hover:text-slovakia-blue font-semibold transition"><i class="fa-solid fa-reply text-[10px]"></i><span>Reagovať</span></button>`
                                 : '';
