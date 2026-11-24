@@ -1402,18 +1402,44 @@
                     ? `<button type="button" onclick="reactInRoom('${m.id}', '👍', '${safeNickEsc}')" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs border ${hasThumb ? 'bg-blue-100 border-slovakia-blue text-slovakia-blue font-bold' : 'border-slate-300 bg-white text-slate-700 hover:bg-blue-50 hover:border-slovakia-blue hover:text-slovakia-blue'} font-semibold transition"><span>👍</span><span>Reagovať</span></button>`
                     : '';
 
+                const myNickLower = String((currentUser && currentUser.nick) || '').toLowerCase();
+                const rawMsgText = String(m.text || '');
+                const mentionsMe = Boolean(
+                    !isOwnMsg && myNickLower && (
+                        (m.mentionedNick && String(m.mentionedNick).toLowerCase() === myNickLower) ||
+                        new RegExp(`(^|\s)@${myNickLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?=[:\s,!.?]|$)`, 'i').test(rawMsgText)
+                    )
+                );
+                const formattedMsgText = rawMsgText.replace(
+                    /(^|\s)(@[\p{L}\p{N}_.-]+)(?=[:\s,!.?]|$)/gu,
+                    (match, lead, tag) => {
+                        const isTargetMe = myNickLower && tag.slice(1).toLowerCase() === myNickLower;
+                        const tagCls = isTargetMe
+                            ? 'inline-block px-1.5 py-0.2 rounded bg-amber-200 text-amber-950 font-black border border-amber-400'
+                            : 'inline-block px-1.5 py-0.2 rounded bg-blue-100 text-slovakia-blue font-bold';
+                        return `${lead}<span class="${tagCls}">${tag}</span>`;
+                    }
+                );
+                const rowHighlightCls = mentionsMe
+                    ? 'p-2.5 -mx-2.5 rounded-xl bg-amber-50/90 border-l-4 border-amber-400 shadow-xs'
+                    : '';
+                const mentionBanner = mentionsMe
+                    ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-200 text-amber-950 border border-amber-300"><i class="fa-solid fa-bell"></i>Reakcia / zmienka pre teba</span>`
+                    : '';
+
                 return `
-                <div class="flex items-start space-x-3">
+                <div class="flex items-start space-x-3 ${rowHighlightCls}">
                     <div ${clickAttr} class="w-9 h-9 rounded-full ${avatarBg} text-white flex items-center justify-center font-bold text-xs flex-shrink-0 overflow-hidden shadow-sm ${targetUid ? 'cursor-pointer' : ''}">${avatarHtml}</div>
                     <div class="min-w-0 flex-1">
                         <div class="flex items-center flex-wrap gap-1.5">
                             <span ${clickAttr} class="font-bold text-sm ${nickColor} ${cursorClass}">${m.nick}</span>
                             ${getGenderBadge(m.gender, m.age)}
                             ${isMsgAdmin ? '<span class="bg-red-600 text-white text-[10px] px-1.5 py-0.2 rounded font-bold">ADMIN</span>' : ''}
+                            ${mentionBanner}
                             <span class="text-xs text-slate-400">${m.time || ''}</span>
                             ${showReportFlag ? `<button type="button" onclick="openReportModal('${targetUid}', '${safeNickEsc}', '${safeTextEsc}')" title="Nahlásiť správu" class="text-slate-300 hover:text-slovakia-red text-xs ml-auto transition"><i class="fa-regular fa-flag"></i></button>` : ''}
                         </div>
-                        <p class="text-sm text-slate-700 mt-0.5 break-words">${m.text}</p>
+                        <p class="text-sm text-slate-700 mt-0.5 break-words">${formattedMsgText}</p>
                         ${(badges || reactBtn) ? `<div class="flex flex-wrap items-center gap-1.5 mt-1.5">${badges}${reactBtn}</div>` : ''}
                     </div>
                 </div>
@@ -1467,6 +1493,8 @@
             if (!text) return;
 
             const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const mentionMatch = text.match(/@([\p{L}\p{N}_.-]+)/u);
+            const mentionedNick = mentionMatch ? mentionMatch[1] : '';
             
             try {
                 await addDoc(collection(db, "rooms", currentRoom, "messages"), {
@@ -1475,6 +1503,7 @@
                     gender: currentUser.gender || 'neuvedené',
                     age: currentUser.age || '',
                     text: text,
+                    mentionedNick: mentionedNick,
                     time: time,
                     role: currentUser.email === ADMIN_EMAIL ? 'ADMIN' : 'Člen',
                     timestamp: serverTimestamp()
