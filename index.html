@@ -1398,7 +1398,7 @@
                 }).join('');
                 const hasThumb = Boolean(currentUser && Array.isArray(rx['👍']) && rx['👍'].includes(currentUser.uid));
                 const reactBtn = (currentUser && m.id)
-                    ? `<button type="button" onclick="reactInRoom('${m.id}', '👍')" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs border ${hasThumb ? 'bg-blue-100 border-slovakia-blue text-slovakia-blue font-bold' : 'border-slate-300 bg-white text-slate-700 hover:bg-blue-50 hover:border-slovakia-blue hover:text-slovakia-blue'} font-semibold transition"><span>👍</span><span>Reagovať</span></button>`
+                    ? `<button type="button" onclick="reactInRoom('${m.id}', '👍', '${safeNickEsc}')" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs border ${hasThumb ? 'bg-blue-100 border-slovakia-blue text-slovakia-blue font-bold' : 'border-slate-300 bg-white text-slate-700 hover:bg-blue-50 hover:border-slovakia-blue hover:text-slovakia-blue'} font-semibold transition"><span>👍</span><span>Reagovať</span></button>`
                     : '';
 
                 return `
@@ -2628,7 +2628,7 @@
             return true;
         }
 
-        window.reactInRoom = async function(msgId, emoji = '👍') {
+        window.reactInRoom = async function(msgId, emoji = '👍', targetNick = '') {
             if (!currentUser || !msgId) return;
             const msgs = messagesDB[currentRoom] || [];
             const msg = msgs.find(m => m.id === msgId);
@@ -2651,13 +2651,22 @@
             msg.reactions = rx;
             renderChatMessages();
 
+            const replyNick = targetNick || msg.nick || '';
+            const chatInput = document.getElementById('chatInput');
+            if (chatInput && replyNick && replyNick !== currentUser.nick) {
+                const prefix = `@${replyNick}: `;
+                if (!chatInput.value.startsWith(prefix)) {
+                    chatInput.value = prefix + chatInput.value.replace(/^@[^:]+:\s*/, '');
+                }
+                chatInput.focus();
+            }
+
             try {
                 await updateDoc(doc(db, "rooms", currentRoom, "messages", msgId), {
                     reactions: rx
                 });
             } catch (err) {
-                console.error("Chyba pri ukladaní reakcie v miestnosti:", err);
-                alert("Nepodarilo sa uložiť reakciu v miestnosti.");
+                console.warn("Reakcia uložená lokálne (Firestore zápis zamietnutý):", err);
             }
         };
 
