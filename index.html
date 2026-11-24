@@ -1415,16 +1415,20 @@
                     (match, lead, tag) => {
                         const isTargetMe = myNickLower && tag.slice(1).toLowerCase() === myNickLower;
                         const tagCls = isTargetMe
-                            ? 'inline-block px-1.5 py-0.2 rounded bg-amber-200 text-amber-950 font-black border border-amber-400'
-                            : 'inline-block px-1.5 py-0.2 rounded bg-blue-100 text-slovakia-blue font-bold';
+                            ? 'text-slovakia-blue font-bold underline decoration-slovakia-blue/50'
+                            : 'text-slovakia-blue font-semibold';
                         return `${lead}<span class="${tagCls}">${tag}</span>`;
                     }
                 );
                 const rowHighlightCls = mentionsMe
-                    ? 'p-2.5 -mx-2.5 rounded-xl bg-amber-50/90 border-l-4 border-amber-400 shadow-xs'
+                    ? 'py-1.5 px-2.5 -mx-2.5 rounded-lg bg-blue-50/55 border-l-2 border-slovakia-blue'
                     : '';
-                const mentionBanner = mentionsMe
-                    ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-200 text-amber-950 border border-amber-300"><i class="fa-solid fa-bell"></i>Reakcia / zmienka pre teba</span>`
+                const isCurrentAdmin = Boolean(currentUser && String(currentUser.email || '').toLowerCase() === ADMIN_EMAIL);
+                const adminDelBtn = (isCurrentAdmin && m.id)
+                    ? `<button type="button" onclick="deleteRoomMessage('${m.id}')" title="Zmazať správu" class="text-slate-300 hover:text-red-600 text-xs transition"><i class="fa-solid fa-trash-can"></i></button>`
+                    : '';
+                const rightActionsHtml = (showReportFlag || adminDelBtn)
+                    ? `<div class="flex items-center gap-2 ml-auto">${showReportFlag ? `<button type="button" onclick="openReportModal('${targetUid}', '${safeNickEsc}', '${safeTextEsc}')" title="Nahlásiť správu" class="text-slate-300 hover:text-slovakia-red text-xs transition"><i class="fa-regular fa-flag"></i></button>` : ''}${adminDelBtn}</div>`
                     : '';
 
                 return `
@@ -1435,9 +1439,8 @@
                             <span ${clickAttr} class="font-bold text-sm ${nickColor} ${cursorClass}">${m.nick}</span>
                             ${getGenderBadge(m.gender, m.age)}
                             ${isMsgAdmin ? '<span class="bg-red-600 text-white text-[10px] px-1.5 py-0.2 rounded font-bold">ADMIN</span>' : ''}
-                            ${mentionBanner}
                             <span class="text-xs text-slate-400">${m.time || ''}</span>
-                            ${showReportFlag ? `<button type="button" onclick="openReportModal('${targetUid}', '${safeNickEsc}', '${safeTextEsc}')" title="Nahlásiť správu" class="text-slate-300 hover:text-slovakia-red text-xs ml-auto transition"><i class="fa-regular fa-flag"></i></button>` : ''}
+                            ${rightActionsHtml}
                         </div>
                         <p class="text-sm text-slate-700 mt-0.5 break-words">${formattedMsgText}</p>
                         ${(badges || reactBtn) ? `<div class="flex flex-wrap items-center gap-1.5 mt-1.5">${badges}${reactBtn}</div>` : ''}
@@ -2186,6 +2189,17 @@
             } catch (err) {
                 console.error("Chyba pri mazaní príspevku:", err);
                 alert("Nepodarilo sa zmazať príspevok.");
+            }
+        };
+
+        window.deleteRoomMessage = async function(msgId) {
+            if (!currentUser || String(currentUser.email || '').toLowerCase() !== ADMIN_EMAIL || !msgId) return;
+            if (!confirm("Naozaj chceš zmazať túto správu z miestnosti?")) return;
+            try {
+                await deleteDoc(doc(db, "rooms", currentRoom, "messages", msgId));
+            } catch (err) {
+                console.error("Chyba pri mazaní správy:", err);
+                alert("Nepodarilo sa zmazať správu z miestnosti.");
             }
         };
 
