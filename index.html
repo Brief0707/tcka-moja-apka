@@ -128,8 +128,8 @@
                 <button id="navQuizBtn" onclick="switchSection('quiz')" class="px-3.5 py-2 rounded-lg hover:bg-blue-900 text-xs font-bold transition flex items-center gap-1.5">
                     <i class="fa-solid fa-brain text-purple-300"></i><span>Kvíz</span>
                 </button>
-                <button id="navWordgameBtn" onclick="switchSection('wordgame')" class="px-3.5 py-2 rounded-lg hover:bg-blue-900 text-xs font-bold transition flex items-center gap-1.5">
-                    <i class="fa-solid fa-gamepad text-cyan-300"></i><span>Slovná hra</span>
+                <button id="navWordgameBtn" onclick="switchSection('jokes')" class="px-3.5 py-2 rounded-lg hover:bg-blue-900 text-xs font-bold transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-face-laugh-squint text-cyan-300"></i><span>Vtipy & Citáty</span>
                 </button>
                 <button id="navAdminBtn" onclick="switchSection('admin')" class="px-3.5 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-xs font-bold transition flex items-center gap-1.5 hidden">
                     <i class="fa-solid fa-shield-halved"></i><span>Admin</span>
@@ -366,27 +366,65 @@
                 </div>
             </div>
 
-            <!-- SECTION 6: MINI HRA — HÁDAJ SLOVENSKÉ SLOVO -->
-            <div id="sectionWordGame" class="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 p-6 hidden flex-col items-center justify-center text-center overflow-y-auto">
-                <div class="max-w-md w-full my-auto py-4">
-                    <span class="text-xs font-bold bg-blue-100 text-slovakia-blue px-3 py-1 rounded-full uppercase tracking-widest">Mini hra</span>
-                    <h2 class="text-2xl font-black text-slovakia-blue mt-3 mb-1">Hádaj slovenské slovo</h2>
-                    <p id="wordGameHint" class="text-xs text-slate-500 mb-4">Nápoveda: Načítavam...</p>
-
-                    <div id="wordGameDisplay" class="text-2xl sm:text-3xl font-black tracking-[0.3em] text-slovakia-blue bg-slate-50 border border-slate-200 rounded-2xl py-5 px-3 mb-4">
-                        _ _ _ _
+            <!-- SECTION 6: VTIPY, CITÁTY & NÁHODNÝ PARŤÁK -->
+            <div id="sectionJokes" class="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 p-4 md:p-6 hidden flex-col overflow-y-auto">
+                <div class="max-w-3xl w-full mx-auto space-y-6 my-auto py-2">
+                    <div class="text-center">
+                        <span class="text-xs font-bold bg-cyan-100 text-cyan-800 px-3 py-1 rounded-full uppercase tracking-widest">Zábava & Inšpirácia</span>
+                        <h2 class="text-2xl font-black text-slovakia-blue mt-2">Slovenské vtipy, citáty a náhodný parťák</h2>
+                        <p class="text-xs text-slate-500 mt-1">Zlepši si náladu, pošli vtip do miestnosti alebo si nájdi niekoho na pokec.</p>
                     </div>
 
-                    <div class="flex justify-between text-xs font-bold text-slate-600 mb-4 px-1">
-                        <span>Zostávajúce pokusy: <strong id="wordGameLives" class="text-slovakia-red">6</strong></span>
-                        <span id="wordGameStatus" class="text-slovakia-blue"></span>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- VTIP DŇA -->
+                        <div class="bg-slate-50 border border-slate-200 rounded-2xl p-5 flex flex-col justify-between shadow-sm">
+                            <div>
+                                <div class="flex items-center justify-between mb-3">
+                                    <span class="text-xs font-black uppercase tracking-wider text-slovakia-red"><i class="fa-solid fa-face-laugh-squint mr-1.5"></i>Vtip</span>
+                                    <span id="jokeCategoryBadge" class="text-[10px] font-bold bg-red-100 text-slovakia-red px-2 py-0.5 rounded-full">Zábava</span>
+                                </div>
+                                <p id="jokeText" class="text-sm text-slate-700 leading-relaxed min-h-[84px]">Načítavam vtip...</p>
+                            </div>
+                            <div class="flex gap-2 mt-4 pt-3 border-t border-slate-200">
+                                <button type="button" onclick="nextJoke()" class="flex-1 bg-slovakia-blue text-white py-2 rounded-xl text-xs font-bold hover:bg-opacity-90 transition">
+                                    <i class="fa-solid fa-shuffle mr-1.5"></i>Ďalší vtip
+                                </button>
+                                <button type="button" onclick="shareJokeToChat()" class="px-3.5 py-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-xs font-bold text-slate-700 transition" title="Poslať do aktuálnej miestnosti">
+                                    <i class="fa-solid fa-paper-plane mr-1 text-slovakia-blue"></i>Do chatu
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- CITÁT -->
+                        <div class="bg-slate-50 border border-slate-200 rounded-2xl p-5 flex flex-col justify-between shadow-sm">
+                            <div>
+                                <div class="flex items-center justify-between mb-3">
+                                    <span class="text-xs font-black uppercase tracking-wider text-slovakia-blue"><i class="fa-solid fa-quote-left mr-1.5"></i>Citát</span>
+                                    <span id="quoteAuthorBadge" class="text-[10px] font-bold bg-blue-100 text-slovakia-blue px-2 py-0.5 rounded-full">Múdrosť</span>
+                                </div>
+                                <p id="quoteText" class="text-sm italic text-slate-700 leading-relaxed min-h-[84px]">Načítavam citát...</p>
+                            </div>
+                            <div class="flex gap-2 mt-4 pt-3 border-t border-slate-200">
+                                <button type="button" onclick="nextQuote()" class="flex-1 bg-slovakia-red text-white py-2 rounded-xl text-xs font-bold hover:bg-opacity-90 transition">
+                                    <i class="fa-solid fa-rotate-right mr-1.5"></i>Ďalší citát
+                                </button>
+                                <button type="button" onclick="shareQuoteToChat()" class="px-3.5 py-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-xs font-bold text-slate-700 transition" title="Poslať do aktuálnej miestnosti">
+                                    <i class="fa-solid fa-paper-plane mr-1 text-slovakia-red"></i>Do chatu
+                                </button>
+                            </div>
+                        </div>
                     </div>
 
-                    <div id="wordGameKeyboard" class="grid grid-cols-7 gap-1.5 mb-5"></div>
-
-                    <button type="button" onclick="startWordGame()" class="px-5 py-2.5 rounded-xl bg-slovakia-blue text-white text-xs font-bold hover:bg-opacity-90 transition shadow">
-                        <i class="fa-solid fa-rotate-right mr-1.5"></i>Nové slovo
-                    </button>
+                    <!-- NÁHODNÝ PARŤÁK NA POKEC -->
+                    <div class="bg-blue-50/70 border border-blue-200 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <h3 class="font-black text-slovakia-blue text-sm"><i class="fa-solid fa-wand-magic-sparkles mr-1.5 text-amber-500"></i>Náhodný parťák na pokec</h3>
+                            <p id="randomBuddyResult" class="text-xs text-slate-600 mt-1">Klikni na tlačidlo a vyberieme ti náhodného člena z komunity na RP správu.</p>
+                        </div>
+                        <button type="button" onclick="pickRandomBuddy()" class="bg-slovakia-blue text-white px-4 py-2.5 rounded-xl text-xs font-bold hover:bg-opacity-90 transition flex-shrink-0 shadow">
+                            <i class="fa-solid fa-dice mr-1.5"></i>Vylosovať člena
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -557,8 +595,8 @@
                 <button type="button" onclick="mobileNavSelect('quiz')" class="w-full text-left px-4 py-3 rounded-xl hover:bg-blue-900 text-sm font-bold flex items-center">
                     <i class="fa-solid fa-brain w-6 text-purple-300"></i>Kvíz
                 </button>
-                <button type="button" onclick="mobileNavSelect('wordgame')" class="w-full text-left px-4 py-3 rounded-xl hover:bg-blue-900 text-sm font-bold flex items-center">
-                    <i class="fa-solid fa-gamepad w-6 text-cyan-300"></i>Slovná hra
+                <button type="button" onclick="mobileNavSelect('jokes')" class="w-full text-left px-4 py-3 rounded-xl hover:bg-blue-900 text-sm font-bold flex items-center">
+                    <i class="fa-solid fa-face-laugh-squint w-6 text-cyan-300"></i>Vtipy & Citáty
                 </button>
                 <button type="button" id="mobileNavAdminBtn" onclick="mobileNavSelect('admin')" class="w-full text-left px-4 py-3 rounded-xl bg-red-600 hover:bg-red-700 text-sm font-bold flex items-center hidden">
                     <i class="fa-solid fa-shield-halved w-6 text-white"></i>Admin Panel
@@ -768,8 +806,10 @@
 
         window.insertEmojiToInput = function(emoji) {
             const input = document.getElementById('chatInput');
+            const bar = document.getElementById('emojiPickerBar');
             if (!input) return;
             input.value += emoji;
+            if (bar) bar.classList.add('hidden');
             input.focus();
         };
 
@@ -1213,7 +1253,7 @@
             }
 
             currentSection = section;
-            ['chat', 'stretko', 'community', 'messages', 'quiz', 'wordgame', 'admin'].forEach(s => {
+            ['chat', 'stretko', 'community', 'messages', 'quiz', 'jokes', 'admin'].forEach(s => {
                 const el = document.getElementById('section' + s.charAt(0).toUpperCase() + s.slice(1));
                 if (el) el.classList.add('hidden');
             });
@@ -1221,7 +1261,7 @@
             const targetEl = document.getElementById('section' + section.charAt(0).toUpperCase() + section.slice(1));
             if (targetEl) targetEl.classList.remove('hidden');
 
-            ['Chat', 'Stretko', 'Comm', 'Messages', 'Quiz', 'Wordgame'].forEach(btnKey => {
+            ['Chat', 'Stretko', 'Comm', 'Messages', 'Quiz', 'Jokes'].forEach(btnKey => {
                 const btn = document.getElementById('nav' + btnKey + 'Btn');
                 if (btn) {
                     btn.classList.remove('bg-blue-900');
@@ -1234,7 +1274,7 @@
                 community: 'navCommBtn',
                 messages: 'navMessagesBtn',
                 quiz: 'navQuizBtn',
-                wordgame: 'navWordgameBtn'
+                jokes: 'navWordgameBtn'
             };
             if (mapBtn[section]) {
                 const activeBtn = document.getElementById(mapBtn[section]);
@@ -1248,8 +1288,8 @@
                 loadQuizQuestion();
                 renderQuizLeaderboard();
             }
-            if (section === 'wordgame') {
-                if (!currentSecret) startWordGame();
+            if (section === 'jokes') {
+                initJokesAndQuotes();
             }
             if (section === 'messages') {
                 stopTabTitleBlink();
@@ -1415,6 +1455,8 @@
                     timestamp: serverTimestamp()
                 });
                 input.value = '';
+                const bar = document.getElementById('emojiPickerBar');
+                if (bar) bar.classList.add('hidden');
                 shouldForceScrollToBottom = true;
                 scrollChatToBottom(true);
             } catch (err) {
@@ -2183,79 +2225,115 @@
             `).join('');
         }
 
-        // ================= MINI HRA: HÁDAJ SLOVENSKÉ SLOVO =================
-        const SECRET_WORDS_SK = [
-            { word: "BRATISLAVA", hint: "Hlavné mesto Slovenska pri Dunaji" },
-            { word: "HALUSKY", hint: "Tradičné jedlo s bryndzou a slaninou" },
-            { word: "TATRY", hint: "Najvyššie pohorie na Slovensku" },
-            { word: "KOSICE", hint: "Najväčšie mesto na východe Slovenska" },
-            { word: "DUNAJ", hint: "Veľká európska rieka tečúca cez Bratislavu" },
-            { word: "ORAVA", hint: "Historický región na severe so známym hradom" },
-            { word: "PIROHY", hint: "Plnené cestovinové taštičky" },
-            { word: "KRIVAN", hint: "Symbolický vrch slovenských hôr" }
+        // ================= VTIPY, CITÁTY & NÁHODNÝ PARŤÁK =================
+        const SLOVAK_JOKES = [
+            { cat: "Zábava", text: "Príde Bača do banky a vraví: Chcel by som si požičať milión eur. Úradník sa pousmeje: A čím budete ručiť? Bača ukáže na barana: Týmto! A čo keď zdochne? Tak vám poviem, že už nevládze." },
+            { cat: "Zábava", text: "Stretnú sa dvaja východniari v Londýne. Jano sa pýta: Fero, a ty tu už robíš dlho? Fero: Od pondelka. Jano: A to ti už tak dobre ide po anglicky?" },
+            { cat: "Život", text: "Doktor hovorí pacientovi: Musíte prestať piť kávu, fajčiť a jesť vyprážané. Pacient sa zamyslí: A keď to všetko dodržím, budem žiť dlhšie? Doktor: Možno nie dlhšie, ale bude sa vám to tak zdať." },
+            { cat: "Zábava", text: "Prečo má počítač vždy chladnú hlavu? Lebo má stále zapnuté chladenie a žiadne emócie!" },
+            { cat: "Život", text: "Hovorí manželka mužovi: Drahý, dnes som upiekla koláč a zjedla som ho celý. Muž na to: To je super, aspoň nemusím umývať plech!" }
         ];
 
-        const ALPHABET_SK = "AÁÄBCČDĎEÉFGHIÍJKLMNŇOÓÔPQRŔSŠTŤUÚVWXYÝZŽ".split("");
-        let currentSecret = null;
-        let guessedLetters = new Set();
-        let livesLeft = 6;
+        const SLOVAK_QUOTES = [
+            { author: "Milan Rúfus", text: "Človek je taký veľký, aký veľký je jeho súcit a láska k druhému." },
+            { author: "Slovenské príslovie", text: "Kto chce kam, pomôžme mu tam." },
+            { author: "Slovenské príslovie", text: "Ráno múdrejšie večera." },
+            { author: "Ján Werich", text: "Keď už človek nevie kam, mal by sa aspoň pozrieť, odkiaľ prišiel." },
+            { author: "Slovenské príslovie", text: "Bez práce nie sú koláče." }
+        ];
 
-        window.startWordGame = function() {
-            currentSecret = SECRET_WORDS_SK[Math.floor(Math.random() * SECRET_WORDS_SK.length)];
-            guessedLetters = new Set();
-            livesLeft = 6;
+        let currentJokeIndex = 0;
+        let currentQuoteIndex = 0;
 
-            document.getElementById('wordGameHint').innerText = `Nápoveda: ${currentSecret.hint}`;
-            document.getElementById('wordGameLives').innerText = String(livesLeft);
-            document.getElementById('wordGameStatus').innerText = "";
+        function renderJokeCard() {
+            const j = SLOVAK_JOKES[currentJokeIndex];
+            const textEl = document.getElementById('jokeText');
+            const catEl = document.getElementById('jokeCategoryBadge');
+            if (textEl) textEl.innerText = j.text;
+            if (catEl) catEl.innerText = j.cat;
+        }
 
-            renderWordGameBoard();
-            renderWordGameKeyboard();
+        function renderQuoteCard() {
+            const q = SLOVAK_QUOTES[currentQuoteIndex];
+            const textEl = document.getElementById('quoteText');
+            const authEl = document.getElementById('quoteAuthorBadge');
+            if (textEl) textEl.innerText = `„${q.text}“`;
+            if (authEl) authEl.innerText = q.author;
+        }
+
+        function initJokesAndQuotes() {
+            renderJokeCard();
+            renderQuoteCard();
+        }
+
+        window.nextJoke = function() {
+            currentJokeIndex = (currentJokeIndex + 1) % SLOVAK_JOKES.length;
+            renderJokeCard();
         };
 
-        function renderWordGameBoard() {
-            const disp = document.getElementById('wordGameDisplay');
-            if (!disp || !currentSecret) return;
+        window.nextQuote = function() {
+            currentQuoteIndex = (currentQuoteIndex + 1) % SLOVAK_QUOTES.length;
+            renderQuoteCard();
+        };
 
-            const chars = currentSecret.word.split("").map(ch => guessedLetters.has(ch) ? ch : "_");
-            disp.innerText = chars.join(" ");
-
-            if (!chars.includes("_")) {
-                document.getElementById('wordGameStatus').innerText = "Vyhral si! 🎉";
-            } else if (livesLeft <= 0) {
-                disp.innerText = currentSecret.word.split("").join(" ");
-                document.getElementById('wordGameStatus').innerText = "Koniec pokusov!";
+        window.shareJokeToChat = async function() {
+            if (!currentUser) return;
+            const j = SLOVAK_JOKES[currentJokeIndex];
+            const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            try {
+                await addDoc(collection(db, "rooms", currentRoom, "messages"), {
+                    uid: currentUser.uid,
+                    nick: currentUser.nick,
+                    gender: currentUser.gender || 'neuvedené',
+                    age: currentUser.age || '',
+                    text: `😂 Vtip: ${j.text}`,
+                    time: time,
+                    role: currentUser.email === ADMIN_EMAIL ? 'ADMIN' : 'Člen',
+                    timestamp: serverTimestamp()
+                });
+                switchSection('chat');
+                shouldForceScrollToBottom = true;
+                scrollChatToBottom(true);
+            } catch (e) {
+                alert("Nepodarilo sa poslať vtip do chatu.");
             }
-        }
+        };
 
-        function renderWordGameKeyboard() {
-            const kb = document.getElementById('wordGameKeyboard');
-            if (!kb || !currentSecret) return;
-            const gameOver = livesLeft <= 0 || !currentSecret.word.split("").some(ch => !guessedLetters.has(ch));
-
-            kb.innerHTML = ALPHABET_SK.map(letter => {
-                const used = guessedLetters.has(letter);
-                const disabled = used || gameOver;
-                return `
-                    <button type="button" ${disabled ? "disabled" : ""} onclick="guessWordLetter('${letter}')"
-                        class="py-2 rounded-lg text-xs font-bold border transition ${
-                            used
-                                ? "bg-slate-200 text-slate-400 border-slate-200"
-                                : "bg-white hover:bg-blue-50 text-slovakia-blue border-slate-300"
-                        }">${letter}</button>
-                `;
-            }).join("");
-        }
-
-        window.guessWordLetter = function(letter) {
-            if (!currentSecret || guessedLetters.has(letter) || livesLeft <= 0) return;
-            guessedLetters.add(letter);
-            if (!currentSecret.word.includes(letter)) {
-                livesLeft -= 1;
-                document.getElementById('wordGameLives').innerText = String(livesLeft);
+        window.shareQuoteToChat = async function() {
+            if (!currentUser) return;
+            const q = SLOVAK_QUOTES[currentQuoteIndex];
+            const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            try {
+                await addDoc(collection(db, "rooms", currentRoom, "messages"), {
+                    uid: currentUser.uid,
+                    nick: currentUser.nick,
+                    gender: currentUser.gender || 'neuvedené',
+                    age: currentUser.age || '',
+                    text: `💬 „${q.text}“ — ${q.author}`,
+                    time: time,
+                    role: currentUser.email === ADMIN_EMAIL ? 'ADMIN' : 'Člen',
+                    timestamp: serverTimestamp()
+                });
+                switchSection('chat');
+                shouldForceScrollToBottom = true;
+                scrollChatToBottom(true);
+            } catch (e) {
+                alert("Nepodarilo sa poslať citát do chatu.");
             }
-            renderWordGameBoard();
-            renderWordGameKeyboard();
+        };
+
+        window.pickRandomBuddy = function() {
+            const resEl = document.getElementById('randomBuddyResult');
+            if (!resEl || !currentUser) return;
+            const candidates = usersDB.filter(u => u.uid && u.uid !== currentUser.uid);
+            if (!candidates.length) {
+                resEl.innerText = "Momentálne tu nie sú žiadni ďalší členovia na vylosovanie.";
+                return;
+            }
+            const buddy = candidates[Math.floor(Math.random() * candidates.length)];
+            const safeNick = String(buddy.nick || 'Člen').replace(/'/g, "&#39;");
+            resEl.innerHTML = `Vylosovaný člen: <strong class="text-slovakia-blue">${buddy.nick}</strong> (${buddy.location || 'Slovensko'}) — ` +
+                `<button type="button" onclick="openRpToUser('${buddy.uid}', '${safeNick}')" class="text-slovakia-red font-bold underline ml-1">Napísať RP</button>`;
         };
 
         // ================= ADMIN & HLÁSENIA =================
