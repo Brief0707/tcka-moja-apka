@@ -268,6 +268,8 @@
                     </div>
                     <select id="stretkoFilter" onchange="renderStretko()" class="px-3.5 py-2 rounded-lg border border-slate-300 text-sm font-semibold bg-white">
                         <option value="všetci">Všetci členovia</option>
+                        <option value="online">Len online 🟢</option>
+                        <option value="s_fotkou">Len s fotkou 📷</option>
                         <option value="žena">Len ženy ♀</option>
                         <option value="muž">Len muži ♂</option>
                         <option value="zahraničie">Slováci v zahraničí 🌍</option>
@@ -537,6 +539,11 @@
                 <div class="flex justify-between items-center text-xs bg-slate-50 px-3 py-2 rounded-lg border border-slate-200">
                     <span class="text-slate-500">Oprávnenie: <strong id="modalRole" class="text-slovakia-red">Člen</strong></span>
                     <span class="text-slate-500">Účet: <strong id="modalVerified" class="text-green-600">Overený</strong></span>
+                </div>
+
+                <div class="bg-slate-50 border border-slate-200 rounded-xl p-3">
+                    <div class="text-xs font-bold uppercase text-slate-500 mb-1.5"><i class="fa-solid fa-ban mr-1 text-slovakia-red"></i>Zablokovaní používatelia (skryté RP)</div>
+                    <div id="blockedUsersListModal" class="text-xs text-slate-600 space-y-1">Nikoho nemáš zablokovaného.</div>
                 </div>
 
                 <div id="profileSaveAlert" class="hidden text-xs font-bold text-center p-2 rounded-lg bg-green-100 text-green-700">Profil bol úspešne uložený!</div>
@@ -1219,7 +1226,7 @@
             unsubscribeMessages = onSnapshot(q, (snapshot) => {
                 const msgs = [];
                 snapshot.forEach((docSnap) => {
-                    msgs.push(docSnap.data());
+                    msgs.push({ id: docSnap.id, ...docSnap.data() });
                 });
                 messagesDB[currentRoom] = msgs;
                 renderChatMessages();
@@ -1227,7 +1234,7 @@
                 const fallbackQ = collection(db, "rooms", currentRoom, "messages");
                 onSnapshot(fallbackQ, (snap) => {
                     const fallbackMsgs = [];
-                    snap.forEach(d => fallbackMsgs.push(d.data()));
+                    snap.forEach(d => fallbackMsgs.push({ id: d.id, ...d.data() }));
                     messagesDB[currentRoom] = fallbackMsgs;
                     renderChatMessages();
                 });
@@ -1390,6 +1397,17 @@
                             ${currentUser && targetUid && targetUid !== currentUser.uid ? `<button type="button" onclick="openReportModal('${targetUid}', '${String(m.nick || 'Člen').replace(/'/g, "&#39;")}', '${String(m.text || '').replace(/'/g, "&#39;")}')" title="Nahlásiť správu" class="text-slate-300 hover:text-slovakia-red text-xs ml-auto transition"><i class="fa-regular fa-flag"></i></button>` : ''}
                         </div>
                         <p class="text-sm text-slate-700 mt-0.5 break-words">${m.text}</p>
+                        ${m.id ? (() => {
+                            const rx = m.reactions || {};
+                            const emojis = ['👍', '❤️', '😂'];
+                            const btns = emojis.map(em => {
+                                const uids = Array.isArray(rx[em]) ? rx[em] : [];
+                                const cnt = uids.length;
+                                const active = currentUser && uids.includes(currentUser.uid);
+                                return `<button type="button" onclick="toggleMessageReaction('${m.id}', '${em}')" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border transition ${active ? 'bg-blue-100 border-slovakia-blue text-slovakia-blue font-bold' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'}"><span>${em}</span>${cnt > 0 ? `<span>${cnt}</span>` : ''}</button>`;
+                            }).join('');
+                            return `<div class="flex items-center gap-1.5 mt-1.5">${btns}</div>`;
+                        })() : ''}
                     </div>
                 </div>
             `}).join('');
@@ -1571,7 +1589,12 @@
             const filter = filterEl.value;
             let filtered = usersDB;
 
-            if (filter === 'žena' || filter === 'muž') {
+            if (filter === 'online') {
+                const onlineUids = new Set(getOnlineUsers().map(x => x.uid));
+                filtered = usersDB.filter(u => onlineUids.has(u.uid));
+            } else if (filter === 's_fotkou') {
+                filtered = usersDB.filter(u => Boolean(u.photoData));
+            } else if (filter === 'žena' || filter === 'muž') {
                 filtered = usersDB.filter(u => u.gender === filter);
             } else if (filter === 'zahraničie') {
                 filtered = usersDB.filter(u => (u.location || '').includes('UK') || (u.location || '').includes('Česká') || (u.location || '').includes('Nemecko'));
@@ -1768,8 +1791,10 @@
             if (!listEl || !currentUser) return;
 
             const threadsMap = {};
+            const blockedSet = getBlockedUserSet();
             privateMessagesDB.forEach(m => {
                 const partnerUid = m.fromUid === currentUser.uid ? m.toUid : m.fromUid;
+                if (blockedSet.has(partnerUid)) return;
                 const partnerNick = m.fromUid === currentUser.uid ? m.toNick : m.fromNick;
                 if (!threadsMap[partnerUid]) {
                     threadsMap[partnerUid] = {
@@ -2487,6 +2512,7 @@
             document.getElementById('editBioInput').value = currentUser.bio || '';
             document.getElementById('modalRole').innerText = currentUser.role;
             document.getElementById('modalVerified').innerText = currentUser.verified ? "Overený" : "Admin účet";
+            renderBlockedUsersInModal();
             document.getElementById('profileSaveAlert').classList.add('hidden');
             document.getElementById('profileModal').classList.remove('hidden');
         };
@@ -2570,6 +2596,91 @@
             }
         };
 
+        window.toggleMessageReaction = async function(msgId, emoji) {
+            if (!currentUser || !msgId) return;
+            const msgs = messagesDB[currentRoom] || [];
+            const msg = msgs.find(m => m.id === msgId);
+            if (!msg) return;
+            const rx = { ...(msg.reactions || {}) };
+            const currentList = Array.isArray(rx[emoji]) ? [...rx[emoji]] : [];
+            const idx = currentList.indexOf(currentUser.uid);
+            if (idx >= 0) {
+                currentList.splice(idx, 1);
+            } else {
+                currentList.push(currentUser.uid);
+            }
+            rx[emoji] = currentList;
+            try {
+                await updateDoc(doc(db, "rooms", currentRoom, "messages", msgId), {
+                    reactions: rx
+                });
+            } catch (err) {
+                console.error("Chyba pri ukladaní reakcie:", err);
+            }
+        };
+
+        function getBlockedUserSet() {
+            if (!currentUser) return new Set();
+            try {
+                const raw = localStorage.getItem('tcka_blocked_' + currentUser.uid);
+                const arr = raw ? JSON.parse(raw) : [];
+                return new Set(Array.isArray(arr) ? arr : []);
+            } catch (e) {
+                return new Set();
+            }
+        }
+
+        function saveBlockedUserSet(setObj) {
+            if (!currentUser) return;
+            try {
+                localStorage.setItem('tcka_blocked_' + currentUser.uid, JSON.stringify([...setObj]));
+            } catch (e) {}
+        }
+
+        function renderBlockedUsersInModal() {
+            const box = document.getElementById('blockedUsersListModal');
+            if (!box || !currentUser) return;
+            const blocked = [...getBlockedUserSet()];
+            if (!blocked.length) {
+                box.innerHTML = `<div class="text-slate-400">Nikoho nemáš zablokovaného.</div>`;
+                return;
+            }
+            box.innerHTML = blocked.map(uid => {
+                const u = usersDB.find(item => item.uid === uid);
+                const label = u ? u.nick : uid.slice(0, 8);
+                const safeLabel = String(label).replace(/'/g, "&#39;");
+                return `<div class="flex items-center justify-between bg-white px-2.5 py-1.5 rounded border border-slate-200">
+                    <span class="font-semibold text-slate-700">${label}</span>
+                    <button type="button" onclick="toggleBlockUser('${uid}', '${safeLabel}', true)" class="text-slovakia-blue font-bold hover:underline">Odblokovať</button>
+                </div>`;
+            }).join('');
+        }
+
+        window.toggleBlockUser = function(targetUid, targetNick, refreshModalOnly = false) {
+            if (!currentUser || !targetUid || targetUid === currentUser.uid) return;
+            const setObj = getBlockedUserSet();
+            if (setObj.has(targetUid)) {
+                setObj.delete(targetUid);
+                if (!refreshModalOnly) alert(`Používateľ ${targetNick} bol odblokovaný.`);
+            } else {
+                setObj.add(targetUid);
+                if (activeRpPartnerUid === targetUid) {
+                    activeRpPartnerUid = null;
+                    const feedEl = document.getElementById('rpChatFeed');
+                    const formEl = document.getElementById('rpReplyForm');
+                    const titleEl = document.getElementById('rpActivePartnerNick');
+                    if (feedEl) feedEl.innerHTML = `<div class="text-center text-xs text-slate-400 py-12">Konverzácia s týmto používateľom je skrytá.</div>`;
+                    if (formEl) formEl.classList.add('hidden');
+                    if (titleEl) titleEl.innerText = 'Vyber konverzáciu vľavo';
+                }
+                if (!refreshModalOnly) alert(`Používateľ ${targetNick} bol zablokovaný — jeho RP správy sa ti nebudú zobrazovať.`);
+            }
+            saveBlockedUserSet(setObj);
+            renderRpThreads();
+            renderBlockedUsersInModal();
+            if (!refreshModalOnly) closePublicProfileModal();
+        };
+
         window.openPublicProfile = function(uid) {
             const u = usersDB.find(item => item.uid === uid);
             if (!u) return;
@@ -2613,10 +2724,14 @@
             }
 
             const safePubNick = String(u.nick || 'Člen').replace(/'/g, "&#39;");
+            const isBlocked = getBlockedUserSet().has(u.uid);
             document.getElementById('pubActionArea').innerHTML = `
                 <div class="space-y-2">
                     <button onclick="closePublicProfileModal(); openRpToUser('${u.uid}', '${safePubNick}')" class="w-full bg-slovakia-blue text-white py-2.5 rounded-lg text-sm font-bold hover:bg-opacity-90 transition shadow">
                         <i class="fa-solid fa-paper-plane mr-2"></i>Poslať súkromnú správu (RP)
+                    </button>
+                    <button type="button" onclick="toggleBlockUser('${u.uid}', '${safePubNick}')" class="w-full border ${isBlocked ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100'} py-2 rounded-lg text-xs font-bold transition">
+                        <i class="fa-solid ${isBlocked ? 'fa-user-check' : 'fa-ban'} mr-1.5"></i>${isBlocked ? 'Odblokovať člena' : 'Zablokovať člena (skryť RP)'}
                     </button>
                     <button type="button" onclick="closePublicProfileModal(); openReportModal('${u.uid}', '${safePubNick}', 'Profil používateľa')" class="w-full border border-red-200 bg-red-50 text-slovakia-red py-2 rounded-lg text-xs font-bold hover:bg-red-100 transition">
                         <i class="fa-regular fa-flag mr-1.5"></i>Nahlásiť nevhodné chovanie
