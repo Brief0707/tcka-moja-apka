@@ -19,7 +19,7 @@
         .border-slovakia-red { border-color: var(--slovakia-red); }
     </style>
 </head>
-<body class="bg-slate-100 text-slate-800 h-screen flex flex-col overflow-hidden">
+<body class="bg-slate-100 text-slate-800 h-dvh flex flex-col overflow-hidden">
 
     <!-- AUTH SCREEN (LOGIN / REGISTER) -->
     <div id="authScreen" class="fixed inset-0 bg-gradient-to-br from-blue-950 via-blue-900 to-slate-900 z-50 flex items-center justify-center p-4 overflow-y-auto">
@@ -1993,7 +1993,7 @@
                 }
                 await addDoc(collection(db, "private_messages"), payload);
             } catch (err) {
-                console.error("Chyba pri odoslaní odpovede:", err);
+                console.error("Chyba pri odosielaní odpovede:", err);
                 alert("Nepodarilo sa odoslať správu.");
             }
         };
@@ -2958,6 +2958,146 @@
             closeAllMobileDrawers();
             switchSection(sec);
         };
+
+        // ================= MOBILNÉ TLAČIDLO SPÄŤ (< 768px) =================
+        (function setupMobileBackButton() {
+            let ignoreNextPop = false;
+            let pushedStateCount = 0;
+
+            function isMobile() {
+                return window.innerWidth < 768;
+            }
+
+            function pushNavEntry(type, meta = {}) {
+                if (!isMobile()) return;
+                pushedStateCount++;
+                try {
+                    history.pushState({ tckaNav: true, type, ...meta, seq: pushedStateCount }, "", window.location.href);
+                } catch (e) {}
+            }
+
+            const modalIds = ["profileModal", "publicProfileModal", "postModal", "reportModal", "rpModal"];
+
+            function hasOpenModal() {
+                return modalIds.some(id => {
+                    const el = document.getElementById(id);
+                    return el && !el.classList.contains("hidden");
+                });
+            }
+
+            function closeTopModal() {
+                for (const id of modalIds) {
+                    const el = document.getElementById(id);
+                    if (el && !el.classList.contains("hidden")) {
+                        el.classList.add("hidden");
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            function hasOpenDrawer() {
+                const dIds = ["mobileRoomsDrawer", "mobileUsersDrawer", "mobileNavDrawer"];
+                return dIds.some(id => {
+                    const el = document.getElementById(id);
+                    return el && !el.classList.contains("hidden");
+                });
+            }
+
+            // Zachytíme otvorenie modálov, zásuviek, sekcií a miestností
+            const origOpenProfile = window.openProfileModal;
+            if (typeof origOpenProfile === "function") {
+                window.openProfileModal = function(...args) {
+                    origOpenProfile.apply(this, args);
+                    pushNavEntry("modal");
+                };
+            }
+
+            const origOpenPubProfile = window.openPublicProfile;
+            if (typeof origOpenPubProfile === "function") {
+                window.openPublicProfile = function(...args) {
+                    origOpenPubProfile.apply(this, args);
+                    if (hasOpenModal()) pushNavEntry("modal");
+                };
+            }
+
+            const origOpenAddPost = window.openAddPostModal;
+            if (typeof origOpenAddPost === "function") {
+                window.openAddPostModal = function(...args) {
+                    origOpenAddPost.apply(this, args);
+                    pushNavEntry("modal");
+                };
+            }
+
+            const origOpenReport = window.openReportModal;
+            if (typeof origOpenReport === "function") {
+                window.openReportModal = function(...args) {
+                    origOpenReport.apply(this, args);
+                    if (hasOpenModal()) pushNavEntry("modal");
+                };
+            }
+
+            const origOpenNewRp = window.openNewRpModal;
+            if (typeof origOpenNewRp === "function") {
+                window.openNewRpModal = function(...args) {
+                    origOpenNewRp.apply(this, args);
+                    if (hasOpenModal()) pushNavEntry("modal");
+                };
+            }
+
+            const origToggleDrawer = window.toggleMobileDrawer;
+            if (typeof origToggleDrawer === "function") {
+                window.toggleMobileDrawer = function(which) {
+                    origToggleDrawer.call(this, which);
+                    if (hasOpenDrawer()) pushNavEntry("drawer", { drawer: which });
+                };
+            }
+
+            const origSwitchSection = window.switchSection;
+            if (typeof origSwitchSection === "function") {
+                window.switchSection = function(section) {
+                    const prev = currentSection;
+                    origSwitchSection.call(this, section);
+                    if (prev !== section && section !== "chat") {
+                        pushNavEntry("section", { from: prev, to: section });
+                    }
+                };
+            }
+
+            const origChangeRoom = window.changeRoom;
+            if (typeof origChangeRoom === "function") {
+                window.changeRoom = function(roomName) {
+                    const prevRoom = currentRoom;
+                    origChangeRoom.call(this, roomName);
+                    if (prevRoom && prevRoom !== roomName) {
+                        pushNavEntry("room", { fromRoom: prevRoom, toRoom: roomName });
+                    }
+                };
+            }
+
+            window.addEventListener("popstate", () => {
+                if (!isMobile()) return;
+                if (ignoreNextPop) {
+                    ignoreNextPop = false;
+                    return;
+                }
+
+                if (closeTopModal()) {
+                    return;
+                }
+
+                if (hasOpenDrawer()) {
+                    closeAllMobileDrawers();
+                    return;
+                }
+
+                if (currentSection && currentSection !== "chat") {
+                    switchSection("chat");
+                    return;
+                }
+            });
+        })();
+
     </script>
 </body>
 </html>
